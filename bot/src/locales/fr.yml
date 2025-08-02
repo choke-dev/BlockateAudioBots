@@ -1,0 +1,212 @@
+# French translations for BlockateAudioBot
+
+# Common messages
+common:
+  success: ":white_check_mark:"
+  error: ":x:"
+  warning: ":warning:"
+  loading: "Chargement..."
+  contact_admin: "Veuillez contacter <@208876506146013185>."
+
+# Command descriptions
+commands:
+  requestwhitelist:
+    description: "Demande la mise en liste blanche d'un audio"
+    options:
+      id: "L'ID de l'audio"
+      name: "Le nom de l'audio"
+      category: "La catégorie/source de l'audio"
+      tags: "Tags séparés par des virgules pour l'audio (ex. \"meme, drôle, fort\")"
+      private: "Indique si l'audio est privé, utilisé pour l'audio spécifique au monde"
+  
+  addaudio:
+    description: "Ajoute un audio à la base de données audio de blockate."
+    options:
+      id: "L'id de l'audio"
+      name: "Le nom de l'audio"
+      category: "La catégorie de l'audio"
+      audio_visibility: "Indique si l'audio est publiquement recherchable dans la base de données ou non"
+      audio_lifecycle: "Indique si l'audio est disponible ou modéré"
+      whitelister_name: "Le nom de celui qui met en liste blanche"
+      whitelister_id: "L'id de celui qui met en liste blanche"
+      whitelister_type: "Le type de celui qui met en liste blanche"
+      requester_name: "Le nom du demandeur"
+      requester_id: "L'id du demandeur"
+      requester_type: "Le type du demandeur"
+  
+  deleteaudio:
+    description: "Supprime un audio de la base de données audio de blockate."
+    options:
+      id: "L'id de l'audio à supprimer"
+      confirm: "Confirmez que vous voulez supprimer cet audio (requis)"
+
+# Button labels
+buttons:
+  mark_done: "Marquer comme terminé"
+  attempt_whitelist: "Tenter la liste blanche"
+  edit_audio_details: "Modifier les détails de l'audio"
+  raise_issue: "Signaler un problème"
+  ignore_request: "Ignorer la demande"
+  sending: "Envoi en cours..."
+  in_queue: "En file d'attente..."
+  whitelisting: "Mise en liste blanche..."
+  whitelisted: "Mis en liste blanche"
+
+# Messages
+messages:
+  # Request whitelist messages
+  request_whitelist:
+    channel_error: "Impossible de récupérer le canal, veuillez contacter <@208876506146013185>."
+    audio_exists: |
+      :x: Un audio avec cet ID existe déjà :
+      ```
+      ID: {id}
+      Nom: {name}
+      Catégorie: {category}
+      ```
+    permission_error: |
+      :warning: [BMusicUploader](<https://www.roblox.com/users/4572614730/profile>) n'a pas les permissions "Utiliser" pour cet audio.
+      
+      Veuillez accorder à [BMusicUploader](<https://www.roblox.com/users/4572614730/profile>) la permission "Utiliser" dans la [page des permissions de l'audio](<https://create.roblox.com/dashboard/creations/store/{id}/permissions>).
+    request_sent: |
+      :white_check_mark: Votre demande de liste blanche audio a été envoyée avec les détails suivants :
+      ID: {id}
+      Nom: {name}
+      Catégorie: {category}
+    request_sent_with_tags: |
+      :white_check_mark: Votre demande de liste blanche audio a été envoyée avec les détails suivants :
+      ID: {id}
+      Nom: {name}
+      Catégorie: {category}
+      Tags: {tags}
+    request_sent_private: |
+      :white_check_mark: Votre demande de liste blanche audio a été envoyée avec les détails suivants :
+      ID: {id}
+      Nom: {name}
+      Catégorie: {category}
+      :lock: Marqué comme privé — caché des résultats de recherche
+    request_sent_with_tags_private: |
+      :white_check_mark: Votre demande de liste blanche audio a été envoyée avec les détails suivants :
+      ID: {id}
+      Nom: {name}
+      Catégorie: {category}
+      Tags: {tags}
+      :lock: Marqué comme privé — caché des résultats de recherche
+    send_failed: "Échec de l'envoi de la demande. Veuillez contacter <@208876506146013185>."
+    new_request_header: "**Nouvelle demande de liste blanche audio**"
+    requested_by: "Demandé par <@{userId}> ({userId})"
+    marked_private: ":lock: Marqué comme privé — caché des résultats de recherche"
+
+  # Add audio messages
+  add_audio:
+    partial_whitelister_info: ":x: Si vous fournissez des informations sur celui qui met en liste blanche, tous les champs (nom, id et type) doivent être remplis."
+    audio_exists: ":x: Cet audio existe déjà dans la base de données."
+    something_wrong: "Quelque chose s'est mal passé, veuillez contacter <@208876506146013185>."
+    success: |
+      :white_check_mark: Audio ajouté à la base de données.
+      
+      ID: {id}
+      Nom: {name}
+      Catégorie: {category}
+      Mis en liste blanche par: {whitelisterName} ({whitelisterId}) [{whitelisterType}]
+      Visibilité: {visibility}
+      Cycle de vie: {lifecycle}
+
+  # Delete audio messages
+  delete_audio:
+    confirm_required: ":x: Vous devez confirmer la suppression en définissant le paramètre de confirmation sur vrai."
+    not_found: ":x: L'audio avec l'ID spécifié n'existe pas dans la base de données."
+    something_wrong: "Quelque chose s'est mal passé, veuillez contacter <@208876506146013185>."
+    success: |
+      :white_check_mark: Audio supprimé avec succès de la base de données.
+      
+      ID de l'Audio Supprimé: {id}
+
+  # Whitelist attempt messages
+  whitelist_attempt:
+    whitelisted: "✅ {id} mis en liste blanche."
+    socket_error: "❌ Erreur du serveur socket."
+    processing_timeout: "❌ Le processus de liste blanche a pris trop de temps ! Veuillez réessayer."
+    queue_timeout: "❌ La demande a expiré. Veuillez réessayer plus tard."
+    connection_error: "❌ Impossible de se connecter au service audio. Veuillez notifier un administrateur."
+
+  # Mark done messages
+  mark_done:
+    requester_not_found: "Demandeur non trouvé."
+    parse_failed: "Échec de l'analyse des détails de la demande."
+    move_failed: "Échec du déplacement du message ; mis à jour sur place."
+    audio_exists: ":x: L'audio existe déjà."
+    error_adding: "Erreur lors de l'ajout de l'audio ; contactez l'administrateur."
+    dm_failed: "Échec de l'envoi du message privé au demandeur."
+    marked_done: "✅ Cette demande a été marquée comme terminée par <@{userId}>."
+    completion_dm: "✅ Votre demande de liste blanche pour{private} `{id} ({category} - {name})`{tags} a été complétée par <@{userId}>."
+    completion_dm_private: " audio privé"
+    completion_dm_tags: " avec les tags : {tags}"
+
+# Choice values
+# Modal and form labels
+modals:
+  reject_request:
+    title: "Rejeter la Demande de Liste Blanche"
+    rejection_reason_label: "Raison du Rejet (optionnel)"
+    rejection_reason_placeholder: "Entrez la raison pour rejeter cette demande..."
+  
+  edit_audio_details:
+    title: "Modifier les Détails de l'Audio"
+    id_label: "ID"
+    name_label: "Nom"
+    category_label: "Catégorie"
+    tags_label: "Tags (séparés par des virgules)"
+    is_private_label: "Est Privé (true/false)"
+
+# Issue selection
+issues:
+  select_placeholder: "Sélectionner un problème"
+  select_prompt: |
+    Veuillez sélectionner le problème que cet audio a.
+    -# Sélectionner un problème notifiera immédiatement le demandeur du problème sélectionné.
+  no_permissions:
+    label: "Pas de permissions d'utilisation pour l'audio"
+    description: "Le bot n'a pas les permissions \"Utiliser\" pour cet audio"
+    dm_message: |
+      :warning: Votre demande de liste blanche pour `{id} ({category} - {name})` n'a pas pu être traitée car le bot n'a pas la permission d'utiliser cet audio.
+      
+      Veuillez accorder à [BMusicUploader](<https://www.roblox.com/users/4572614730/profile>) la permission "Utiliser" dans la [page des permissions de l'audio](<https://create.roblox.com/dashboard/creations/store/{id}/permissions>).
+      
+      Veuillez mentionner <@{userId}> ou tout responsable de liste blanche disponible une fois résolu.
+  moderated:
+    label: "L'audio a été modéré"
+    description: "Cet audio a été modéré et ne peut pas être utilisé"
+    dm_message: ":x: Votre demande de liste blanche pour `{id} ({category} - {name})` n'a pas pu être traitée car elle a été supprimée par la modération roblox."
+
+# Rejection messages
+rejection:
+  success: "✅ Demande rejetée."
+  failed_move: "⚠️ La demande a été rejetée, mais a échoué à déplacer vers le canal cible. Le message original a été mis à jour à la place."
+  failed_retrieve: "Échec de la récupération du message original."
+  failed_update: "Échec de la mise à jour du statut de la demande. Veuillez réessayer."
+  rejected_by: "❌ Cette demande a été rejetée par <@{userId}>."
+  rejection_reason: "**Raison du Rejet :** {reason}"
+  dm_message: "❌ Votre demande de liste blanche pour{private} `{id} ({category} - {name})`{tags} a été rejetée par <@{userId}>."
+  dm_message_private: " audio privé"
+  dm_message_tags: " avec les tags : {tags}"
+
+# General messages
+general:
+  notified_requester: ":white_check_mark: Demandeur notifié du problème de l'audio."
+  additionally_ignored: "\nDe plus, l'audio a été automatiquement ignoré."
+  ignored_by: "❌ Cette demande a été ignorée (audio modéré) par <@{userId}>."
+  failed_move_message: "Échec du déplacement du message vers le canal cible. Le message original a été mis à jour à la place."
+  failed_dm: "Je n'ai pas pu envoyer un message privé au demandeur. Il se peut qu'il ait désactivé les DMs."
+  error_find_requester: "Erreur : Impossible de trouver le demandeur dans le contenu du message."
+
+choices:
+  visibility:
+    public: "Public"
+    private: "Privé"
+  lifecycle:
+    active: "Actif"
+    moderated: "Modéré"
+  platform:
+    roblox: "Roblox"
+    discord: "Discord"

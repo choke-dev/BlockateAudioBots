@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  blockate-audio-bot:
+    build: .
+    container_name: blockate-audio-bot
+    restart: unless-stopped
+    environment:
+      # Discord Configuration
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - OWNERS=${OWNERS}
+      
+      # Database Configuration
+      - DATABASE_URL=${DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      
+      # Notification Service
+      - NTFY_AUTH=${NTFY_AUTH}
+      - NTFY_USER=${NTFY_USER}
+      - NTFY_PASSWORD=${NTFY_PASSWORD}
+      
+      # Audio Service
+      - AUDIO_FILE_PROXY_AUTH=${AUDIO_FILE_PROXY_AUTH}
+      - ROBLOX_ACCOUNT_COOKIE=${ROBLOX_ACCOUNT_COOKIE}
+      
+      # Node Environment
+      - NODE_ENV=production
+    
+    # Optional: Mount volumes for persistent data
+    volumes:
+      - ./data:/app/data:rw
+    
+    # Optional: Add logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Add PostgreSQL database if needed
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: blockate-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_DB=${POSTGRES_DB:-blockate}
+  #     - POSTGRES_USER=${POSTGRES_USER:-postgres}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+# volumes:
+#   postgres_data:

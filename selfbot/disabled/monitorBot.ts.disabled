@@ -1,0 +1,88 @@
+import { ofetch } from "ofetch";
+import SelfbotEvent from "../../src/structures/event.js";
+import noblox from "noblox.js";
+import Selfbot from "../../src/structures/client.js";
+
+const MONITORING_ACCOUNT = 8661443435;
+const TARGET_ACCOUNT = 4572614730;
+noblox.setCookie(process.env.ROBLOX_ACCOUNT_TOKEN!);
+
+const checkFriendship = async (selfbot: Selfbot) => {
+    const targetFriends = await noblox.getFriends(MONITORING_ACCOUNT);
+    if (!targetFriends.data.find((friend) => friend.id === TARGET_ACCOUNT)) {
+        selfbot.logger.warning("BMusicUploader is offline! Attempting to restart bot...")
+        const commandsChannel = selfbot.channels.cache.get("1383368884035518464")
+        if (!commandsChannel) return;
+        if (commandsChannel.type !== "GUILD_TEXT") return;
+        commandsChannel.send(`:warning: [BMusicUploader](<https://www.roblox.com/users/${TARGET_ACCOUNT}/profile>) is down! Restarting bot...`)
+        commandsChannel.sendSlash("1300028911274430537", "restart")
+        await noblox.block(TARGET_ACCOUNT)
+            .then(() => {
+                selfbot.logger.info("Blocked BMusicUploader.")
+            })
+            .catch(() => {
+                selfbot.logger.warning("Failed to block BMusicUploader.")
+            })
+        await noblox.unblock(TARGET_ACCOUNT)
+            .then(() => {
+                selfbot.logger.info("Unblocked BMusicUploader.")
+            })
+            .catch(() => {
+                selfbot.logger.warning("Failed to unblock BMusicUploader.")
+            })
+        return;
+    }
+    selfbot.logger.info("BMusicUploader is online.")
+    noblox.removeFriend(TARGET_ACCOUNT);
+    return;
+}
+
+const sendFriendRequest = async (selfbot: Selfbot) => {
+    selfbot.logger.info("Sending friend request...")
+    await noblox.sendFriendRequest(TARGET_ACCOUNT);
+    setTimeout(() => {
+        selfbot.logger.info("Checking if friend request was accepted...")
+        checkFriendship(selfbot);
+    }, 10 * 1000)
+}
+
+const checkPresence = async (selfbot: Selfbot) => {
+    selfbot.logger.info("Checking if BMusicUploader is online...")
+    const presenceData = await noblox.getPresences([TARGET_ACCOUNT])
+
+    if (presenceData.userPresences[0].userPresenceType !== UserPresenceType.Offline) return;
+    selfbot.logger.warning(`Roblox API is reporting that ${TARGET_ACCOUNT} is offline. Confirming by sending a friend request...`)
+    sendFriendRequest(selfbot);
+}
+
+export default new SelfbotEvent({
+    name: "ready",
+    async run(selfbot) {
+        return;
+        checkPresence(selfbot);
+        setInterval(() => {
+            checkPresence(selfbot);
+        }, 5 * 60 * 1000);
+
+    },
+});
+
+enum UserPresenceType {
+    Offline = 0,
+    Online = 1,
+    InGame = 2,
+    InStudio = 3,
+    Invisible = 4
+}
+
+type UserPresence = {
+    userPresenceType: UserPresenceType,
+    lastLocation: string,
+    placeId: number,
+    rootPlaceId: number,
+    gameId: string, // UUIDv4
+    universeId: number,
+    userId: number,
+    lastOnline: Date,
+    invisibleModeExpiry: Date
+}

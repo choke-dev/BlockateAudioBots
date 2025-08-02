@@ -1,0 +1,8 @@
+{
+  "prefix": ">",
+  "ipc": {
+    "enabled": true,
+    "socketPath": "/tmp/blockate-audio-whitelisting.sock",
+    "port": 4211
+  }
+}
