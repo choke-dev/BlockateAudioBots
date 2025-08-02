@@ -27,9 +27,11 @@ services:
       # Node Environment
       - NODE_ENV=production
     
-    # Mount volumes for persistent data
+    # Mount volumes for persistent data and IPC communication
     volumes:
       - ./bot/data:/app/data:rw
+      # IPC socket for communication with selfbot
+      - /tmp:/tmp:rw
     
     # Expose health check port
     ports:
