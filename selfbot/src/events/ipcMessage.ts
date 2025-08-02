@@ -81,16 +81,18 @@ async function processQueue() {
                 [audioId, category, is_private]
             );
 
+            const messageContent = result.content;
             const embed = result.embeds[0];
-            if (!embed) throw new Error('Missing embed in response');
+            if (!messageContent && !embed) throw new Error('Missing response data');
 
             const checks: Array<{ cond?: boolean; msg: string; sev: CheckSeverity }> = [
-                { cond: embed.title?.toLowerCase().includes("can't access"), msg: 'No access', sev: 'error' },
-                { cond: embed.description?.toLowerCase().includes('already whitelisted'), msg: 'Already whitelisted', sev: 'info' },
-                { cond: embed.title?.toLowerCase().includes('invalid asset'), msg: 'Invalid ID', sev: 'error' },
-                { cond: embed.title?.toLowerCase().includes('under review'), msg: 'Under review', sev: 'warning' },
-                { cond: embed.title?.toLowerCase().includes('failed'), msg: 'Moderation failed', sev: 'error' },
-                { cond: embed.title?.toLowerCase().includes('ratelimit'), msg: 'Rate limited', sev: 'warning' }
+                { cond: messageContent?.toLowerCase().includes("publicassetcannotbegrantedto"), msg: "This audio is publicly available on the Roblox marketplace!", sev: 'error' },
+                { cond: embed?.title?.toLowerCase().includes("can't access"), msg: 'No access', sev: 'error' },
+                { cond: embed?.description?.toLowerCase().includes('already whitelisted'), msg: 'Already whitelisted', sev: 'info' },
+                { cond: embed?.title?.toLowerCase().includes('invalid asset'), msg: 'Invalid ID', sev: 'error' },
+                { cond: embed?.title?.toLowerCase().includes('under review'), msg: 'Under review', sev: 'warning' },
+                { cond: embed?.title?.toLowerCase().includes('failed'), msg: 'Moderation failed', sev: 'error' },
+                { cond: embed?.title?.toLowerCase().includes('ratelimit'), msg: 'Rate limited', sev: 'warning' }
             ];
 
             const found = checks.find(c => c.cond);

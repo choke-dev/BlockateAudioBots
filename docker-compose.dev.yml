@@ -1,0 +1,99 @@
+services:
+  blockate-audio-bot:
+    build:
+      context: .
+      target: bot-builder
+    container_name: blockate-audio-bot-dev
+    restart: unless-stopped
+    environment:
+      # Discord Configuration
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - OWNERS=${OWNERS}
+      
+      # Database Configuration
+      - DATABASE_URL=${DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      
+      # Notification Service
+      - NTFY_AUTH=${NTFY_AUTH}
+      - NTFY_USER=${NTFY_USER}
+      - NTFY_PASSWORD=${NTFY_PASSWORD}
+      
+      # Audio Service
+      - AUDIO_FILE_PROXY_AUTH=${AUDIO_FILE_PROXY_AUTH}
+      - ROBLOX_ACCOUNT_COOKIE=${ROBLOX_ACCOUNT_COOKIE}
+      
+      # Node Environment
+      - NODE_ENV=development
+    
+    # Mount volumes for development (code changes appear immediately)
+    volumes:
+      - ./bot/data:/app/data:rw
+      # IPC socket for communication with selfbot
+      - /tmp:/tmp:rw
+      # Mount source code for development
+      - ./bot/src:/app/src:ro
+      - ./bot/dist:/app/dist:rw
+    
+    # Expose health check port
+    ports:
+      - "51033:51033"
+    
+    # Override command for development (manual restart needed)
+    command: ["dumb-init", "sh", "-c", "pnpm run build && cp -r src/locales dist/ && node dist/index.js"]
+    
+    # Add logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Network for inter-service communication
+    networks:
+      - blockate-network
+
+  blockate-audio-selfbot:
+    build:
+      context: .
+      target: selfbot-builder
+    container_name: blockate-audio-selfbot-dev
+    restart: unless-stopped
+    environment:
+      # Discord Selfbot Configuration
+      - ACCOUNT_TOKEN=${ACCOUNT_TOKEN}
+      - ROBLOX_ACCOUNT_TOKEN=${ROBLOX_ACCOUNT_TOKEN}
+      
+      # Node Environment
+      - NODE_ENV=development
+    
+    # Mount volumes for development
+    volumes:
+      # IPC socket for communication with main bot
+      - /tmp:/tmp:rw
+      # Mount source code for development
+      - ./selfbot/src:/app/src:ro
+      - ./selfbot/dist:/app/dist:rw
+    
+    # Override command for development (manual restart needed)
+    command: ["dumb-init", "sh", "-c", "rm -rf dist && pnpm build:compile && node --no-warnings dist/index.js"]
+    
+    # Add logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Network for inter-service communication
+    networks:
+      - blockate-network
+    
+    # Depend on the main bot service
+    depends_on:
+      - blockate-audio-bot
+
+networks:
+  blockate-network:
+    driver: bridge

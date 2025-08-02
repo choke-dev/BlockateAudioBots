@@ -262,9 +262,6 @@ export class ButtonHandler extends InteractionHandler {
 		};
 
 		try {
-			// Update UI immediately to show we're sending the request
-			await updateButton('whitelistrequest-attemptwhitelist', t('buttons.sending', locale), true);
-
 			// Define status update handlers (these run on the bot side when messages are received)
 			const onQueuedHandler = async () => {
 				await updateButton('whitelistrequest-attemptwhitelist', t('buttons.in_queue', locale), true);
