@@ -83,15 +83,27 @@ services:
     ports:
       - "3462:80"
     volumes:
-      - ./bot/ntfy:/var/lib/ntfy
+      - ./ntfy-lib:/var/lib/ntfy
     environment:
-      - NTFY_AUTH_USERNAME=${NTFY_USER}
-      - NTFY_AUTH_PASSWORD=${NTFY_PASSWORD}
+      ## 📦 Use persistent cache and auth DB
+      - NTFY_CACHE_FILE=/var/lib/ntfy/cache.db
+      - NTFY_AUTH_FILE=/var/lib/ntfy/user.db
+
+      ## 🛡 Private instance: deny anonymous access
+      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
+
+      ## Enable login and web UI (username/password radio buttons on UI)
+      - NTFY_ENABLE_LOGIN=true
+
+      ## Pre‑provision accounts (comma‑separated list of bcrypt hashes)
+      # Example: myuser:$2a$10$<>:admin (note bcrypt hash)
+      - NTFY_AUTH_USERS="${NTFY_USER}:${NTFY_PASSWORD_HASH}:admin"
+
+      ## Grant full access to your user only
+      - NTFY_AUTH_ACCESS="${NTFY_USER}:*:rw"
     command: serve
-    
     networks:
       - blockate-network
-    
     logging:
       driver: "json-file"
       options:
