@@ -15,10 +15,8 @@ services:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
       
-      # Notification Service
-      - NTFY_AUTH=${NTFY_AUTH}
-      - NTFY_USER=${NTFY_USER}
-      - NTFY_PASSWORD=${NTFY_PASSWORD}
+      # KeyDB Configuration
+      - KEYDB_URL=${KEYDB_URL}
       
       # Audio Service
       - AUDIO_FILE_PROXY_AUTH=${AUDIO_FILE_PROXY_AUTH}
@@ -43,7 +41,6 @@ services:
         max-file: "3"
 
     depends_on:
-      - ntfy
       - keydb
 
   # Discord Selfbot Service

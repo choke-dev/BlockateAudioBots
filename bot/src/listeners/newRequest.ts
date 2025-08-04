@@ -52,7 +52,7 @@ export class UserEvent extends Listener {
 		try {
 			// Create Redis subscriber client for KeyDB
 			this.subscriber = createClient({
-				url: 'redis://keydb:6379'
+				url: process.env.KEYDB_URL || 'redis://keydb:6379'
 			});
 
 			// Connect to KeyDB
