@@ -87,7 +87,7 @@ services:
     environment:
       - NTFY_AUTH_USERNAME=${NTFY_USER}
       - NTFY_AUTH_PASSWORD=${NTFY_PASSWORD}
-      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
+      - NTFY_AUTH_DEFAULT_ACCESS='deny-all'
     command: serve
     
     networks:
