@@ -4,7 +4,6 @@ import * as crypto from 'crypto';
 import { MessageFlags, type ButtonInteraction } from 'discord.js';
 import * as net from 'net';
 import * as path from 'path';
-import * as os from 'os';
 import { t, getLocale } from '../../lib/localization';
 
 // Interfaces for IPC messages
@@ -34,7 +33,7 @@ type SocketConfig = {
 export class ButtonHandler extends InteractionHandler {
 	// Default socket configuration
 	private readonly socketConfig: SocketConfig = {
-		path: path.join(os.tmpdir(), 'blockate-audio-whitelisting.sock'),
+		path: path.join("/app", "ipc", 'blockate-audio-whitelisting.sock'),
 		connectionTimeout: 30000,
 		queueTimeout: 30 * 1000,
 		maxReconnects: 3

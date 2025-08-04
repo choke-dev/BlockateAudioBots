@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   blockate-audio-selfbot:
@@ -9,20 +9,20 @@ services:
       # Discord Selfbot Configuration
       - ACCOUNT_TOKEN=${ACCOUNT_TOKEN}
       - ROBLOX_ACCOUNT_TOKEN=${ROBLOX_ACCOUNT_TOKEN}
-      
+
       # Node Environment
       - NODE_ENV=production
-    
+
     # Mount volumes for persistent data and IPC communication
     volumes:
-      # IPC socket for communication with main bot
-      - /tmp:/tmp:rw
+      # IPC socket directory for communication with main bot
+      - ./ipc:/app/ipc:rw
       # Config file (if you want to override it)
       - ./config.json:/app/config.json:ro
-    
+
     # Network mode to enable IPC communication
     network_mode: "host"
-    
+
     # Optional: Add logging configuration
     logging:
       driver: "json-file"

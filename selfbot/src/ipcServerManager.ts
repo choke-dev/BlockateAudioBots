@@ -51,6 +51,17 @@ export function startServer(
     // Store the socket path for cleanup later
     socketPath = socketPathArg;
 
+    // Ensure the directory exists for the socket file
+    const socketDir = path.dirname(socketPath);
+    if (!fs.existsSync(socketDir)) {
+        try {
+            fs.mkdirSync(socketDir, { recursive: true });
+            console.log(`Created socket directory: ${socketDir}`);
+        } catch (mkdirErr) {
+            console.warn(`Warning: Could not create socket directory: ${mkdirErr.message}`);
+        }
+    }
+
     // Remove the socket file if it exists (it might be stale)
     if (fs.existsSync(socketPath)) {
         try {

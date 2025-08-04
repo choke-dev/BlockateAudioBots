@@ -122,3 +122,6 @@ web_modules/
 .pnp.*
 
 dist
+
+# IPC socket files
+ipc/*.sock

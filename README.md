@@ -1,156 +1,170 @@
-# Blockate Audio Bots
+# BlockateAudioBots - Combined Docker Setup
 
-This repository contains both a Discord bot and a Discord selfbot for managing audio content in Blockate-related Discord servers.
+This repository contains both the main Discord bot and the selfbot for the BlockateAudio system, configured to run together using Docker Compose.
+
+## Project Structure
+
+```
+BlockateAudioBots/
+├── bot/                    # Main Discord bot
+│   ├── Dockerfile
+│   ├── docker-compose.yml # Individual bot compose file
+│   └── src/               # Bot source code
+├── selfbot/               # Discord selfbot
+│   ├── Dockerfile
+│   ├── docker-compose.yml # Individual selfbot compose file
+│   └── src/               # Selfbot source code
+├── shared/
+│   └── ipc/              # Shared IPC directory for bot communication
+├── docker-compose.yml    # Combined compose file (USE THIS)
+├── .env.example          # Combined environment variables template
+└── README.md            # This file
+```
 
 ## Services
 
-- **blockate-audio-bot**: Main Discord bot service
-- **blockate-audio-selfbot**: Discord selfbot service for additional functionality
+The combined setup includes three main services:
+
+1. **blockate-audio-bot** - Main Discord bot service (image: `blockate/audio-bot:latest`)
+2. **blockate-audio-selfbot** - Discord selfbot service (image: `blockate/audio-selfbot:latest`)
+3. **ntfy** - Notification service (image: `binwiederhier/ntfy:latest`)
 
 ## Quick Start
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd BlockateAudioBots
-   ```
+### 1. Environment Setup
 
-2. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your actual values
-   ```
+Copy the environment template and configure your values:
 
-3. **Build and run both services**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **View logs**
-   ```bash
-   # View all services logs
-   docker-compose logs -f
-   
-   # View specific service logs
-   docker-compose logs -f blockate-audio-bot
-   docker-compose logs -f blockate-audio-selfbot
-   ```
-
-## Environment Variables
-
-### Discord Bot Configuration
-- `DISCORD_TOKEN`: Your Discord bot token
-- `OWNERS`: Comma-separated list of Discord user IDs with owner permissions
-
-### Database Configuration
-- `DATABASE_URL`: PostgreSQL connection string
-- `SUPABASE_URL`: Supabase project URL
-- `SUPABASE_KEY`: Supabase anonymous key
-
-### Notification Service
-- `NTFY_AUTH`: NTFY authentication token
-- `NTFY_USER`: NTFY username
-- `NTFY_PASSWORD`: NTFY password
-
-### Audio Service
-- `AUDIO_FILE_PROXY_AUTH`: Audio file proxy authentication token
-- `ROBLOX_ACCOUNT_COOKIE`: Roblox account cookie
-
-### Discord Selfbot Configuration
-- `ACCOUNT_TOKEN`: Discord account token for selfbot
-- `ROBLOX_ACCOUNT_TOKEN`: Roblox account token
-
-## Docker Commands
-
-### Build services
 ```bash
-docker-compose build
+cp .env.example .env
 ```
 
-### Start services
+Edit `.env` and fill in all the required values:
+
+```bash
+# Main bot configuration
+DISCORD_TOKEN=your_discord_bot_token_here
+OWNERS=your_discord_user_id_here
+DATABASE_URL=your_database_url_here
+SUPABASE_URL=your_supabase_url_here
+SUPABASE_KEY=your_supabase_key_here
+
+# Selfbot configuration
+SELFBOT_ACCOUNT_TOKEN=your_discord_account_token_here
+SELFBOT_ROBLOX_ACCOUNT_TOKEN=your_roblox_account_token_here
+
+# Notification service
+NTFY_USER=your_ntfy_username
+NTFY_PASSWORD=your_ntfy_password
+
+# Audio service
+AUDIO_FILE_PROXY_AUTH=your_audio_proxy_auth_token
+ROBLOX_ACCOUNT_COOKIE=your_roblox_account_cookie
+```
+
+### 2. Run the Combined Setup
+
+Start all services together:
+
 ```bash
 docker-compose up -d
 ```
 
-### Stop services
-```bash
-docker-compose down
-```
+This will start:
+- Main Discord bot
+- Discord selfbot
+- ntfy notification service
 
-### Restart services
-```bash
-docker-compose restart
-```
+### 3. Check Service Status
 
-### View service status
+View running containers:
+
 ```bash
 docker-compose ps
 ```
 
-### Update services
+View logs:
+
 ```bash
-docker-compose pull
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f blockate-audio-bot
+docker-compose logs -f blockate-audio-selfbot
+docker-compose logs -f ntfy
+```
+
+### 4. Stop Services
+
+Stop all services:
+
+```bash
+docker-compose down
+```
+
+## Individual Service Management
+
+You can also run services individually if needed:
+
+### Main Bot Only
+```bash
+cd bot
 docker-compose up -d
 ```
 
-## Development
-
-### Building individual services
-
-**Bot only:**
+### Selfbot Only
 ```bash
-docker build --target bot-production -t blockate-audio-bot .
+cd selfbot
+docker-compose up -d
 ```
 
-**Selfbot only:**
-```bash
-docker build --target selfbot-production -t blockate-audio-selfbot .
-```
+## Service Communication
 
-### Local development
-Each service can still be developed locally in their respective directories:
+The bot and selfbot communicate through IPC (Inter-Process Communication) using the shared volume mounted at `/app/ipc` in both containers. This allows them to coordinate actions and share data.
 
-```bash
-# Bot development
-cd bot/
-pnpm install
-pnpm run dev
+## Networking
 
-# Selfbot development
-cd selfbot/
-pnpm install
-pnpm run start
-```
+All services run on a custom Docker network (`blockate-network`) which allows them to communicate with each other using service names as hostnames.
 
-## Architecture
+## Volumes and Data Persistence
 
-The merged Docker configuration uses multi-stage builds to create optimized production images for both services:
+- **Bot data**: `./bot/data` → `/app/data` (bot persistent data)
+- **ntfy data**: `./bot/ntfy` → `/var/lib/ntfy` (notification service data)
+- **IPC communication**: `./shared/ipc` → `/app/ipc` (shared between bot and selfbot)
+- **Selfbot config**: `./selfbot/config.json` → `/app/config.json` (selfbot configuration)
 
-- **Base stage**: Common Node.js setup with build dependencies
-- **Builder stages**: Separate build environments for bot and selfbot
-- **Production stages**: Optimized runtime images with only production dependencies
+## Ports
 
-Both services communicate through:
-- Shared Docker network (`blockate-network`)
-- IPC sockets mounted at `/tmp`
-- Environment variables for configuration
+- **ntfy service**: `8080:80` - Web interface for notifications
 
-## Health Checks
+## Environment Variables
 
-- **Bot**: HTTP health check on port 51033 (`/healthcheck`)
-- **Selfbot**: Node.js process health check
+### Main Bot Variables
+- `DISCORD_TOKEN` - Discord bot token
+- `OWNERS` - Discord user ID of bot owners
+- `DATABASE_URL` - PostgreSQL database connection string
+- `SUPABASE_URL` - Supabase project URL
+- `SUPABASE_KEY` - Supabase service role key
+- `NTFY_USER` - ntfy username
+- `NTFY_PASSWORD` - ntfy password
+- `AUDIO_FILE_PROXY_AUTH` - Audio proxy authentication token
+- `ROBLOX_ACCOUNT_COOKIE` - Roblox account cookie
 
-## Volumes
-
-- `./bot/data:/app/data`: Bot persistent data
-- `/tmp:/tmp`: IPC communication between services
-- `./selfbot/config.json:/app/config.json`: Selfbot configuration
+### Selfbot Variables
+- `SELFBOT_ACCOUNT_TOKEN` - Discord account token for selfbot
+- `SELFBOT_ROBLOX_ACCOUNT_TOKEN` - Roblox account token for selfbot
 
 ## Troubleshooting
 
-### Check service logs
+### Check if services are running
 ```bash
-docker-compose logs -f [service-name]
+docker-compose ps
+```
+
+### View service logs
+```bash
+docker-compose logs [service-name]
 ```
 
 ### Restart a specific service
@@ -158,25 +172,45 @@ docker-compose logs -f [service-name]
 docker-compose restart [service-name]
 ```
 
-### Rebuild and restart
+### Rebuild services after code changes
 ```bash
-docker-compose down
-docker-compose build --no-cache
+docker-compose build
 docker-compose up -d
 ```
 
-### Access service shell
+### View built images
 ```bash
-docker-compose exec blockate-audio-bot sh
-docker-compose exec blockate-audio-selfbot sh
+docker images | grep blockate
 ```
+
+### Clean up everything
+```bash
+docker-compose down -v --remove-orphans
+docker system prune -f
+```
+
+### Remove specific images
+```bash
+docker rmi blockate/audio-bot:latest
+docker rmi blockate/audio-selfbot:latest
+```
+
+## Development
+
+For development, you can run services individually or use the combined setup. The individual docker-compose files in each project directory are still functional for isolated testing.
 
 ## Security Notes
 
-- Both services run as non-root users (`botuser` and `selfbot`)
-- Environment variables should be kept secure
-- The selfbot token should be handled with extra care as it represents a user account
+- Never commit your `.env` file to version control
+- Keep your Discord tokens and API keys secure
+- The selfbot functionality should be used responsibly and in compliance with Discord's Terms of Service
+- Consider using Docker secrets for production deployments
 
-## License
+## Support
 
-See individual service directories for their respective licenses.
+If you encounter issues:
+
+1. Check the logs: `docker-compose logs -f`
+2. Verify your environment variables in `.env`
+3. Ensure all required tokens and credentials are valid
+4. Check that ports are not already in use on your system

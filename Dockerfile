@@ -12,7 +12,7 @@ WORKDIR /app
 FROM base AS bot-builder
 
 # Copy bot package files first for better caching
-COPY bot/package.json bot/pnpm-lock.yaml bot/pnpm-workspace.yaml ./
+COPY bot/package.json bot/pnpm-lock.yaml ./
 
 # Install all dependencies with cache mount for better caching
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
@@ -31,7 +31,7 @@ RUN pnpm run build
 FROM base AS selfbot-builder
 
 # Copy selfbot package files first for better caching
-COPY selfbot/package.json selfbot/pnpm-lock.yaml selfbot/pnpm-workspace.yaml ./
+COPY selfbot/package.json selfbot/pnpm-lock.yaml ./
 
 # Install all dependencies with cache mount for better caching
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
@@ -64,7 +64,7 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S botuser -u 1001
 
 # Copy bot package files
-COPY bot/package.json bot/pnpm-lock.yaml bot/pnpm-workspace.yaml ./
+COPY bot/package.json bot/pnpm-lock.yaml ./
 
 # Install only production dependencies with cache mount
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
@@ -114,7 +114,7 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S selfbot -u 1001
 
 # Copy selfbot package files
-COPY selfbot/package.json selfbot/pnpm-lock.yaml selfbot/pnpm-workspace.yaml ./
+COPY selfbot/package.json selfbot/pnpm-lock.yaml ./
 
 # Install only production dependencies with cache mount
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \

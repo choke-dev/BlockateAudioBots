@@ -38,6 +38,22 @@ services:
         max-size: "10m"
         max-file: "3"
 
+    depends_on:
+      - ntfy
+
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: blockate-ntfy
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./ntfy:/var/lib/ntfy
+    environment:
+      - NTFY_AUTH_USERNAME=${NTFY_USER}
+      - NTFY_AUTH_PASSWORD=${NTFY_PASSWORD}
+    command: serve
+
   # Optional: Add PostgreSQL database if needed
   # postgres:
   #   image: postgres:15-alpine

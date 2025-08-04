@@ -9,7 +9,7 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install all dependencies (including dev dependencies for building)
 RUN pnpm install --frozen-lockfile
@@ -21,6 +21,7 @@ COPY .sapphirerc.json ./
 
 # Build the TypeScript project
 RUN pnpm run build
+RUN if [ ! -d dist ]; then echo "❌  Build failed: dist/ not found" >&2; exit 1; fi
 
 # Production stage
 FROM node:20-alpine AS production
@@ -29,6 +30,7 @@ FROM node:20-alpine AS production
 RUN apk add --no-cache \
     dumb-init \
     && npm install -g pnpm
+RUN apk -U add yt-dlp
 
 # Create app directory
 WORKDIR /app
@@ -38,7 +40,7 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S botuser -u 1001
 
 # Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install only production dependencies
 RUN pnpm install --frozen-lockfile --prod

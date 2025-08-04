@@ -4,6 +4,7 @@ import { ActionRowBuilder, AttachmentBuilder, BaseGuildTextChannel, ButtonBuilde
 import { eq } from 'drizzle-orm';
 import { db } from '../lib/db';
 import { whitelistRequests } from '../lib/db/schema';
+// Using require for WebSocket to avoid TypeScript module import issues
 import WebSocket from 'ws';
 
 type WhitelistRequest = {
@@ -53,39 +54,49 @@ export class UserEvent extends Listener {
 			return;
 		}
 
-		// const authParam = btoa(`Bearer ${process.env.NTFY_AUTH}`).replaceAll("=", '');
-		this.channel = new WebSocket(`wss://ntfy.structurize.me/audioRequests/ws?auth=${process.env.NTFY_AUTH}`)
-
-		this.channel.onmessage = (event) => {
-			if (typeof event.data === 'string') {
-				try {
-					const data = JSON.parse(event.data);
-					if (data.message) {
-						try {
-							const requestData = JSON.parse(data.message);
-							if (!requestData.requestId) return;
-							this.sendWhitelistRequestMessage(requestData as WhitelistRequest);
-						} catch (error) {
-							console.error('Error parsing request data:', error);
-						}
-					} else {
-						console.error('Received message without request data');
-					}
-				} catch (error) {
-					console.error('Error parsing message data:', error);
-				}
-			} else {
-				console.error('Received non-string data from WebSocket');
+		
+		const authParam = btoa(`Basic ${btoa(`${process.env.NTFY_USER}:${process.env.NTFY_PASSWORD}`)}`).replaceAll("=", '');
+		this.channel = new WebSocket(`ws://ntfy:80/audioRequests/ws`, {
+			headers: {
+				Authorization: `Basic ${authParam}`
 			}
-		};
+		});
 
-		this.channel.onopen = () => {
-			console.log('Connected to NTFY');
-		};
+		// Add null check before accessing WebSocket properties
+		if (this.channel) {
+			this.channel.onmessage = (event) => {
+				if (typeof event.data === 'string') {
+					try {
+						const data = JSON.parse(event.data);
+						if (data.message) {
+							try {
+								const requestData = JSON.parse(data.message);
+								if (!requestData.requestId) return;
+								this.sendWhitelistRequestMessage(requestData as WhitelistRequest);
+							} catch (error) {
+								console.error('Error parsing request data:', error);
+							}
+						} else {
+							console.error('Received message without request data');
+						}
+					} catch (error) {
+						console.error('Error parsing message data:', error);
+					}
+				} else {
+					console.error('Received non-string data from WebSocket');
+				}
+			};
 
-		this.channel.onerror = (error) => {
-			console.error('Error connecting to NTFY:', error);
-		};
+			this.channel.onopen = () => {
+				console.log('Connected to NTFY');
+			};
+
+			this.channel.onerror = (error) => {
+				console.error('Error connecting to NTFY:', error);
+			};
+		} else {
+			console.error('Failed to create WebSocket connection');
+		}
 	}
 
 	private async scanForWhitelistRequests() {

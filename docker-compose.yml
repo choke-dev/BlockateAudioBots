@@ -1,8 +1,8 @@
 services:
+  # Main Discord Bot Service
   blockate-audio-bot:
-    build:
-      context: .
-      target: bot-production
+    build: ./bot
+    image: blockate/audio-bot:latest
     container_name: blockate-audio-bot
     restart: unless-stopped
     environment:
@@ -27,62 +27,80 @@ services:
       # Node Environment
       - NODE_ENV=production
     
-    # Mount volumes for persistent data and IPC communication
     volumes:
+      # Bot data directory
       - ./bot/data:/app/data:rw
-      # IPC socket for communication with selfbot
-      - /tmp:/tmp:rw
+      # Shared IPC directory for communication with selfbot
+      - ./shared/ipc:/app/ipc:rw
     
-    # Expose health check port
-    ports:
-      - "51033:51033"
+    networks:
+      - blockate-network
     
-    # Add logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    
-    # Network for inter-service communication
-    networks:
-      - blockate-network
 
+    depends_on:
+      - ntfy
+
+  # Discord Selfbot Service
   blockate-audio-selfbot:
-    build:
-      context: .
-      target: selfbot-production
+    build: ./selfbot
+    image: blockate/audio-selfbot:latest
     container_name: blockate-audio-selfbot
     restart: unless-stopped
     environment:
       # Discord Selfbot Configuration
       - ACCOUNT_TOKEN=${ACCOUNT_TOKEN}
       - ROBLOX_ACCOUNT_TOKEN=${ROBLOX_ACCOUNT_TOKEN}
-      
+
       # Node Environment
       - NODE_ENV=production
-    
-    # Mount volumes for persistent data and IPC communication
+
     volumes:
-      # IPC socket for communication with main bot
-      - /tmp:/tmp:rw
-    
-    # Add logging configuration
+      # Shared IPC directory for communication with main bot
+      - ./shared/ipc:/app/ipc:rw
+      # Selfbot config file
+      - ./selfbot/config.json:/app/config.json:ro
+
+    networks:
+      - blockate-network
+
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    
-    # Network for inter-service communication
-    networks:
-      - blockate-network
-    
-    # Depend on the main bot service
+
     depends_on:
       - blockate-audio-bot
 
-  # Optional: Add PostgreSQL database if needed
+  # Notification Service (ntfy)
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: blockate-ntfy
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./bot/ntfy:/var/lib/ntfy
+    environment:
+      - NTFY_AUTH_USERNAME=${NTFY_USER}
+      - NTFY_AUTH_PASSWORD=${NTFY_PASSWORD}
+    command: serve
+    
+    networks:
+      - blockate-network
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: PostgreSQL database if needed locally
   # postgres:
   #   image: postgres:15-alpine
   #   container_name: blockate-postgres
@@ -102,5 +120,6 @@ networks:
   blockate-network:
     driver: bridge
 
+# Uncomment the volumes section below if using local PostgreSQL
 # volumes:
 #   postgres_data:

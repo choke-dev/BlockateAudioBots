@@ -1,0 +1,4 @@
+*.env
+bot/ntfy/auth.db
+bot/ntfy/cache.db
+shared/ipc/blockate-audio-whitelisting.sock

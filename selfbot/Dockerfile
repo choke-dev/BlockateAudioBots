@@ -13,7 +13,7 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install all dependencies (including dev dependencies for building)
 RUN pnpm install --frozen-lockfile
@@ -43,7 +43,7 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S selfbot -u 1001
 
 # Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install only production dependencies
 RUN pnpm install --frozen-lockfile --prod
@@ -52,8 +52,8 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/config.json ./
 
-# Change ownership to non-root user
-RUN chown -R selfbot:nodejs /app
+# Create IPC directory and set permissions
+RUN mkdir -p /app/ipc && chown -R selfbot:nodejs /app
 USER selfbot
 
 # Environment variables with defaults
