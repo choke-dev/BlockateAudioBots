@@ -47,9 +47,8 @@ services:
     restart: unless-stopped
     ports:
       - "8080:80"
-    volumes:
-      - ./ntfy:/var/lib/ntfy
     environment:
+      - NTFY_AUTH_FILE=${NTFY_AUTH_FILE}
       - NTFY_AUTH_USERNAME=${NTFY_USER}
       - NTFY_AUTH_PASSWORD=${NTFY_PASSWORD}
     command: serve
