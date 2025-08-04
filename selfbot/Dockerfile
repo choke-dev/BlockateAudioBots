@@ -52,9 +52,16 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/config.json ./
 
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Create IPC directory and set permissions
-RUN mkdir -p /app/ipc && chown -R selfbot:nodejs /app
+RUN mkdir -p /app/ipc && chmod 777 /app/ipc && chown -R selfbot:nodejs /app
 USER selfbot
+
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Environment variables with defaults
 ENV NODE_ENV=production

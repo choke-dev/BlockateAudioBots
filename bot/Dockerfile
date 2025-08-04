@@ -48,9 +48,19 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Create IPC directory with proper permissions
+RUN mkdir -p /app/ipc && chmod 777 /app/ipc
+
 # Change ownership to non-root user
 RUN chown -R botuser:nodejs /app
 USER botuser
+
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Environment variables with defaults
 ENV NODE_ENV=production

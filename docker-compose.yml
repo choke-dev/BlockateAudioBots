@@ -31,7 +31,7 @@ services:
       # Bot data directory
       - ./bot/data:/app/data:rw
       # Shared IPC directory for communication with selfbot
-      - ./shared/ipc:/app/ipc:rw
+      - ipc_volume:/app/ipc:rw
     
     networks:
       - blockate-network
@@ -61,7 +61,7 @@ services:
 
     volumes:
       # Shared IPC directory for communication with main bot
-      - ./shared/ipc:/app/ipc:rw
+      - ipc_volume:/app/ipc:rw
 
     networks:
       - blockate-network
@@ -118,6 +118,11 @@ networks:
   blockate-network:
     driver: bridge
 
-# Uncomment the volumes section below if using local PostgreSQL
-# volumes:
-#   postgres_data:
+# Define named volumes
+volumes:
+  # IPC volume with proper permissions for Unix socket communication
+  ipc_volume:
+    # This ensures the volume is created with proper permissions
+    driver: local
+  # Uncomment the volume below if using local PostgreSQL
+  # postgres_data:
