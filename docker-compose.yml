@@ -85,9 +85,10 @@ services:
     volumes:
       - ./bot/ntfy:/var/lib/ntfy
     environment:
+      - NTFY_AUTH_FILE='/var/lib/ntfy/user.db'
       - NTFY_AUTH_USERNAME=${NTFY_USER}
       - NTFY_AUTH_PASSWORD=${NTFY_PASSWORD}
-      - NTFY_AUTH_DEFAULT_ACCESS='deny-all'
+      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
     command: serve
     
     networks:
