@@ -50,9 +50,13 @@ export class UserEvent extends Listener {
 		}
 
 		try {
-			// Create Redis subscriber client for KeyDB
+			// Create Redis subscriber client for KeyDB with authentication
+			const keydbUrl = process.env.KEYDB_URL || 'redis://keydb:6379';
+			const keydbPassword = process.env.KEYDB_PASSWORD;
+			
 			this.subscriber = createClient({
-				url: process.env.KEYDB_URL || 'redis://keydb:6379'
+				url: keydbUrl,
+				...(keydbPassword && { password: keydbPassword })
 			});
 
 			// Connect to KeyDB

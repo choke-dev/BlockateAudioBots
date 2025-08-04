@@ -16,7 +16,8 @@ services:
       - SUPABASE_KEY=${SUPABASE_KEY}
       
       # KeyDB Configuration
-      - KEYDB_URL=${KEYDB_URL}
+      - KEYDB_URL=redis://:${KEYDB_PASSWORD}@keydb:6379
+      - KEYDB_PASSWORD=${KEYDB_PASSWORD}
       
       # Audio Service
       - AUDIO_FILE_PROXY_AUTH=${AUDIO_FILE_PROXY_AUTH}
@@ -77,8 +78,10 @@ services:
   keydb:
     image: eqalpha/keydb:latest
     container_name: blockate-keydb
-    command: keydb-server --bind 0.0.0.0 --port 6379
+    command: keydb-server --bind 0.0.0.0 --port 6379 --requirepass ${KEYDB_PASSWORD}
     restart: unless-stopped
+    environment:
+      - KEYDB_PASSWORD=${KEYDB_PASSWORD}
     ports:
       - "6379:6379"
     networks:
