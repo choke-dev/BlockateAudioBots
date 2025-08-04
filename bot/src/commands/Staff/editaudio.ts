@@ -250,8 +250,24 @@ export class UserCommand extends Command {
 		}
 
 		// Log the edit operation
-		if (!existsSync(filePath)) {
-			await writeFile(filePath, JSON.stringify([]));
+		console.log(`Attempting to access file at: ${filePath}`);
+		try {
+			if (!existsSync(filePath)) {
+				console.log(`File doesn't exist, creating it...`);
+				try {
+					await writeFile(filePath, JSON.stringify([]));
+					console.log(`Successfully created file`);
+				} catch (error: any) {
+					console.error(`Error creating file: ${error.message}`);
+					console.error(`Error code: ${error.code}`);
+					// Continue execution to see if we can read the file anyway
+				}
+			} else {
+				console.log(`File exists`);
+			}
+		} catch (error: any) {
+			console.error(`Error checking if file exists: ${error.message}`);
+			console.error(`Error code: ${error.code}`);
 		}
 
 		const fileContent = await readFile(filePath, 'utf-8');
