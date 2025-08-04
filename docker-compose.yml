@@ -83,7 +83,7 @@ services:
     container_name: blockate-ntfy
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "3462:80"
     volumes:
       - ./bot/ntfy:/var/lib/ntfy
     environment:
