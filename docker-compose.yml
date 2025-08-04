@@ -63,7 +63,7 @@ services:
       # Shared IPC directory for communication with main bot
       - ./shared/ipc:/app/ipc:rw
       # Selfbot config file
-      - ./selfbot/config.json:/app/config.json:ro
+      - ./selfbot:/app:ro
 
     networks:
       - blockate-network
