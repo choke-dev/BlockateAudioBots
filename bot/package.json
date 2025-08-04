@@ -29,6 +29,7 @@
     "js-yaml": "^4.1.0",
     "ofetch": "^1.4.1",
     "postgres": "^3.4.7",
+    "redis": "^5.7.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {

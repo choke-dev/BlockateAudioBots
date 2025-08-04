@@ -44,6 +44,7 @@ services:
 
     depends_on:
       - ntfy
+      - keydb
 
   # Discord Selfbot Service
   blockate-audio-selfbot:
@@ -75,29 +76,16 @@ services:
     depends_on:
       - blockate-audio-bot
 
-  # Notification Service (ntfy)
-  ntfy:
-    image: binwiederhier/ntfy:latest
-    container_name: blockate-ntfy
+  # KeyDB Service for pub/sub
+  keydb:
+    image: eqalpha/keydb:latest
+    container_name: blockate-keydb
+    command: keydb-server --bind 0.0.0.0 --port 6379
     restart: unless-stopped
     ports:
-      - "3462:80"
-    volumes:
-      - ./bot/ntfy:/var/lib/ntfy
-    environment:
-      - NTFY_AUTH_USERNAME=${NTFY_USER}
-      - NTFY_AUTH_PASSWORD=${NTFY_PASSWORD}
-      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
-    command: serve
-    
+      - "6379:6379"
     networks:
       - blockate-network
-    
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   # Optional: PostgreSQL database if needed locally
   # postgres:

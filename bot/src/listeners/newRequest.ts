@@ -4,8 +4,7 @@ import { ActionRowBuilder, AttachmentBuilder, BaseGuildTextChannel, ButtonBuilde
 import { eq } from 'drizzle-orm';
 import { db } from '../lib/db';
 import { whitelistRequests } from '../lib/db/schema';
-// Using require for WebSocket to avoid TypeScript module import issues
-import WebSocket from 'ws';
+import { createClient } from 'redis';
 
 type WhitelistRequest = {
 	status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -29,73 +28,61 @@ type WhitelistRequest = {
 })
 export class UserEvent extends Listener {
 	private whitelistRequestChannel!: BaseGuildTextChannel;
-	private channel: WebSocket | null = null;
+	private subscriber: ReturnType<typeof createClient> | null = null;
 
-	public override run() {
+	public override async run() {
 		const guild = this.container.client.guilds.cache.get('1175226662745546793');
 		const channel = guild?.channels.cache.get('1373443972025815070') as BaseGuildTextChannel;
 		if (!channel) return console.error('Whitelist channel not found');
 		this.whitelistRequestChannel = channel;
 
-		this.subscribeToWhitelist();         // live listener
+		await this.subscribeToWhitelist();         // live listener
 
 		this.scanForWhitelistRequests();
 		setInterval(() => this.scanForWhitelistRequests(), 2 * 60 * 60 * 1000);
 	}
 
-	private subscribeToWhitelist() {
-		if (this.channel) {
-			this.channel.close();
-			this.channel = null;
+	private async subscribeToWhitelist() {
+		// Clean up existing connection
+		if (this.subscriber) {
+			await this.subscriber.quit();
+			this.subscriber = null;
 		}
 
-		if (!process.env.NTFY_USER || !process.env.NTFY_PASSWORD) {
-			console.error('Missing NTFY credentials. NTFY_USERNAME or NTFY_PASSWORD is not set');
-			return;
-		}
+		try {
+			// Create Redis subscriber client for KeyDB
+			this.subscriber = createClient({
+				url: 'redis://keydb:6379'
+			});
 
-		
-		const authParam = btoa(`Basic ${btoa(`${process.env.NTFY_USER}:${process.env.NTFY_PASSWORD}`)}`).replaceAll("=", '');
-		this.channel = new WebSocket(`ws://ntfy:80/audioRequests/ws`, {
-			headers: {
-				Authorization: `Basic ${authParam}`
-			}
-		});
+			// Connect to KeyDB
+			await this.subscriber.connect();
+			console.log('Connected to KeyDB');
 
-		// Add null check before accessing WebSocket properties
-		if (this.channel) {
-			this.channel.onmessage = (event) => {
-				if (typeof event.data === 'string') {
-					try {
-						const data = JSON.parse(event.data);
-						if (data.message) {
-							try {
-								const requestData = JSON.parse(data.message);
-								if (!requestData.requestId) return;
-								this.sendWhitelistRequestMessage(requestData as WhitelistRequest);
-							} catch (error) {
-								console.error('Error parsing request data:', error);
-							}
-						} else {
-							console.error('Received message without request data');
-						}
-					} catch (error) {
-						console.error('Error parsing message data:', error);
-					}
-				} else {
-					console.error('Received non-string data from WebSocket');
+			// Subscribe to the audioRequests channel
+			await this.subscriber.subscribe('audioRequests', (message) => {
+				try {
+					const requestData = JSON.parse(message);
+					if (!requestData.requestId) return;
+					this.sendWhitelistRequestMessage(requestData as WhitelistRequest);
+				} catch (error) {
+					console.error('Error parsing request data:', error);
 				}
-			};
+			});
 
-			this.channel.onopen = () => {
-				console.log('Connected to NTFY');
-			};
+			console.log('Subscribed to audioRequests channel');
 
-			this.channel.onerror = (error) => {
-				console.error('Error connecting to NTFY:', error);
-			};
-		} else {
-			console.error('Failed to create WebSocket connection');
+			// Handle connection errors and reconnection
+			this.subscriber.on('error', (error) => {
+				console.error('Redis subscriber error:', error);
+			});
+
+			this.subscriber.on('reconnecting', () => {
+				console.log('Redis subscriber reconnecting...');
+			});
+
+		} catch (error) {
+			console.error('Error connecting to KeyDB:', error);
 		}
 	}
 
