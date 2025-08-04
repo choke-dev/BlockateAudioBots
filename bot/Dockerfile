@@ -29,6 +29,7 @@ FROM node:20-alpine AS production
 # Install runtime dependencies and pnpm
 RUN apk add --no-cache \
     dumb-init \
+    su-exec \
     && npm install -g pnpm
 RUN apk -U add yt-dlp
 
@@ -57,10 +58,11 @@ RUN mkdir -p /app/ipc && chmod 777 /app/ipc
 
 # Change ownership to non-root user
 RUN chown -R botuser:nodejs /app
-USER botuser
 
-# Set entrypoint
+# Set entrypoint (runs as root)
 ENTRYPOINT ["/entrypoint.sh"]
+
+# The CMD will run as botuser (switched in entrypoint.sh)
 
 # Environment variables with defaults
 ENV NODE_ENV=production
