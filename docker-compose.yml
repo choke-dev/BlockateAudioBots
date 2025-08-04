@@ -16,7 +16,7 @@ services:
       - SUPABASE_KEY=${SUPABASE_KEY}
       
       # KeyDB Configuration
-      - KEYDB_URL=redis://:${KEYDB_PASSWORD}@keydb:6379
+      - KEYDB_URL=${KEYDB_URL}
       - KEYDB_PASSWORD=${KEYDB_PASSWORD}
       
       # Audio Service
