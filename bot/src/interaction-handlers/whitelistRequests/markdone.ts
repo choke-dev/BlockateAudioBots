@@ -17,10 +17,11 @@ export class ButtonHandler extends InteractionHandler {
   public async run(interaction: ButtonInteraction) {
     const locale = getLocale(interaction.locale);
     const whitelister = interaction.user;
-    
+    const requestId = interaction.customId.split("-")[2];
+
     // Try to get the requester's locale from hidden data, fallback to staff member's locale
     const requesterLocale = locale;
-    
+
     const discordRequesterId = interaction.message.content.match(userMentionRegex)?.[1] || null;
     const robloxRequesterId = interaction.message.content.match(robloxUserRegex)?.[1] || null;
 
@@ -96,7 +97,7 @@ export class ButtonHandler extends InteractionHandler {
     try {
       // Convert tags string to array
       const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
-      
+
       await db
         .insert(audios)
         .values({
@@ -122,7 +123,7 @@ export class ButtonHandler extends InteractionHandler {
       if (isUniqueViolation) {
         return interaction.followUp({ content: t('messages.mark_done.audio_exists', locale), flags: [MessageFlags.Ephemeral] });
       }
-      
+
       console.error(error);
       return interaction.followUp({ content: t('messages.mark_done.error_adding', locale), flags: [MessageFlags.Ephemeral] });
     }
@@ -130,23 +131,13 @@ export class ButtonHandler extends InteractionHandler {
     // Approve whitelist request if Roblox
     if (robloxRequesterId) {
       try {
-        const req = await db
-          .select({ requestId: whitelistRequests.requestId })
-          .from(whitelistRequests)
-          .where(eq(whitelistRequests.audioId, id))
-          .limit(1);
-
-        if (req.length > 0) {
-          await db
-            .update(whitelistRequests)
-            .set({ 
-              status: 'APPROVED',
-              updatedAt: new Date().toISOString()
-            })
-            .where(eq(whitelistRequests.requestId, req[0].requestId));
-        } else {
-          console.error(`No whitelistRequest for audio_id ${id}`);
-        }
+        await db
+          .update(whitelistRequests)
+          .set({
+            status: 'APPROVED',
+            updatedAt: new Date().toISOString()
+          })
+          .where(eq(whitelistRequests.requestId, requestId));
       } catch (error) {
         console.error('Error updating whitelist request:', error);
       }
@@ -174,10 +165,10 @@ export class ButtonHandler extends InteractionHandler {
         return interaction.followUp({ content: t('messages.mark_done.dm_failed', locale), flags: [MessageFlags.Ephemeral] });
       }
     }
-	return;
+    return;
   }
 
   public override parse(interaction: ButtonInteraction) {
-    return interaction.customId === 'whitelistrequest-markdone' ? this.some() : this.none();
+    return interaction.customId.startsWith('whitelistrequest-markdone') ? this.some() : this.none();
   }
 }

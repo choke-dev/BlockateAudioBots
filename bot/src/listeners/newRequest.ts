@@ -1,26 +1,26 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Events, Listener } from '@sapphire/framework';
 import { ActionRowBuilder, AttachmentBuilder, BaseGuildTextChannel, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { eq } from 'drizzle-orm';
+import { eq, InferSelectModel } from 'drizzle-orm';
 import { db } from '../lib/db';
 import { whitelistRequests } from '../lib/db/schema';
 import { createClient } from 'redis';
 
-type WhitelistRequest = {
-	status: 'PENDING' | 'APPROVED' | 'REJECTED';
-	updatedAt: string;
-	category: string;
-	name: string;
-	audioId: string;
-	audioVisibility: 'PUBLIC' | 'PRIVATE';
-	tags?: string[];
-	createdAt: string;
-	requestId: string;
-	requester: Record<string, any>;
-	userId: string;
-	acknowledged: boolean;
-	audioUrl: string;
-};
+// type WhitelistRequest = {
+// 	status: 'PENDING' | 'APPROVED' | 'REJECTED';
+// 	updatedAt: string;
+// 	category: string;
+// 	name: string;
+// 	audioId: string;
+// 	audioVisibility: 'PUBLIC' | 'PRIVATE';
+// 	tags?: string[];
+// 	createdAt: string;
+// 	requestId: string;
+// 	requester: Record<string, any>;
+// 	userId: string;
+// 	acknowledged: boolean;
+// 	audioUrl: string;
+// };
 
 
 @ApplyOptions<Listener.Options>({
@@ -68,7 +68,7 @@ export class UserEvent extends Listener {
 				try {
 					const requestData = JSON.parse(message);
 					if (!requestData.requestId) return;
-					this.sendWhitelistRequestMessage(requestData as WhitelistRequest);
+					this.sendWhitelistRequestMessage(requestData as InferSelectModel<typeof whitelistRequests>);
 				} catch (error) {
 					console.error('Error parsing request data:', error);
 				}
@@ -98,14 +98,14 @@ export class UserEvent extends Listener {
 				.where(eq(whitelistRequests.acknowledged, false));
 
 			for (const request of unacknowledgedRequests) {
-				await this.sendWhitelistRequestMessage(request as WhitelistRequest);
+				await this.sendWhitelistRequestMessage(request as InferSelectModel<typeof whitelistRequests>);
 			}
 		} catch (error) {
 			console.error('Error scanning for whitelist requests:', error);
 		}
 	}
 
-	private async sendWhitelistRequestMessage(payload: WhitelistRequest) {
+	private async sendWhitelistRequestMessage(payload: InferSelectModel<typeof whitelistRequests>) {
 		if (!this.whitelistRequestChannel) {
 			console.error('Whitelist request channel not found');
 			return;
@@ -113,33 +113,33 @@ export class UserEvent extends Listener {
 
 		// Create the same buttons as in the requestwhitelist command
 		const acceptButton = new ButtonBuilder()
-			.setCustomId('whitelistrequest-markdone')
+			.setCustomId(`whitelistrequest-markdone-${payload.requestId}`)
 			.setLabel('Mark as done')
 			.setEmoji('✅')
 			.setDisabled(true)
 			.setStyle(ButtonStyle.Success);
 
 		const attemptWhitelist = new ButtonBuilder()
-			.setCustomId('whitelistrequest-attemptwhitelist')
+			.setCustomId(`whitelistrequest-attemptwhitelist-${payload.requestId}`)
 			.setLabel('Attempt whitelist')
 			.setEmoji('📥')
 			.setStyle(ButtonStyle.Primary);
 
 		const editButton = new ButtonBuilder()
-			.setCustomId('whitelistrequest-editaudiodetails')
+			.setCustomId(`whitelistrequest-editaudiodetails-${payload.requestId}`)
 			.setLabel('Edit audio details')
 			.setEmoji('📝')
 			.setStyle(ButtonStyle.Secondary);
 
 		const raiseIssueButton = new ButtonBuilder()
-			.setCustomId('whitelistrequest-raiseissue')
+			.setCustomId(`whitelistrequest-raiseissue`)
 			.setLabel('Raise issue')
 			.setEmoji('⚠️')
 			.setStyle(ButtonStyle.Danger);
 
 		const deleteButton = new ButtonBuilder()
-			.setCustomId('whitelistrequest-ignore')
-			.setLabel('Ignore request')
+			.setCustomId(`whitelistrequest-ignore-${payload.requestId}`)
+			.setLabel('Reject request')
 			.setEmoji('🗑️')
 			.setStyle(ButtonStyle.Danger);
 

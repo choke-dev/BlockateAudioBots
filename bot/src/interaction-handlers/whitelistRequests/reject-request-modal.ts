@@ -12,6 +12,7 @@ import { t, getLocale } from '../../lib/localization';
 export class ModalHandler extends InteractionHandler {
 	public async run(interaction: ModalSubmitInteraction) {
 		const locale = getLocale(interaction.locale);
+		const requestId = interaction.customId.split('-')[3]
 		
 		await interaction.deferReply({
 			flags: [MessageFlags.Ephemeral]
@@ -54,7 +55,7 @@ export class ModalHandler extends InteractionHandler {
 						rejectionReason: rejectionReason,
 						updatedAt: new Date().toISOString()
 					})
-					.where(eq(whitelistRequests.audioId, id));
+					.where(eq(whitelistRequests.requestId, requestId));
 			} catch (error) {
 				console.error('Error updating whitelist request status:', error);
 				return interaction.editReply({ content: t('rejection.failed_update', locale) });
@@ -148,7 +149,7 @@ export class ModalHandler extends InteractionHandler {
 	}
 
 	public override parse(interaction: ModalSubmitInteraction) {
-		if (interaction.customId !== 'reject-request-modal') return this.none();
+		if (!interaction.customId.startsWith('reject-request-modal')) return this.none();
 
 		return this.some();
 	}

@@ -16,6 +16,23 @@ export const users = pgTable("users", {
 	uniqueIndex("users_robloxId_key").using("btree", table.robloxId.asc().nullsLast().op("text_ops")),
 ]).enableRLS();
 
+export const permissions = pgTable("permissions", {
+	id: text().primaryKey().notNull().default('gen_random_uuid()').$defaultFn(() => crypto.randomUUID()),
+	node: text().notNull().unique(),
+	title: text().notNull(),
+	description: text().notNull(),
+	createdAt: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}).enableRLS();
+
+export const user_permissions = pgTable("user_permissions", {
+	id: text().primaryKey().notNull().default('gen_random_uuid()').$defaultFn(() => crypto.randomUUID()),
+	userId: text().notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+	permissionId: text().notNull().references(() => permissions.id, { onDelete: "cascade", onUpdate: "cascade" }),
+	active: boolean().default(true).notNull(),
+	createdAt: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}).enableRLS();
+
 export const sessions = pgTable("sessions", {
 	id: text().primaryKey().notNull(),
 	userId: text().notNull(),
@@ -61,7 +78,7 @@ export const audios = pgTable("audios", {
 	audioVisibility: audioVisibility("audio_visibility").default('PUBLIC').notNull(),
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-}, (_table) => [
+}, (table) => [
 	pgPolicy("public_read_only", { as: "permissive", for: "select", to: ["public"], using: sql`true` }),
 ]).enableRLS();
 
@@ -101,6 +118,6 @@ export const audio = pgTable("Audio", {
 	private: boolean().default(false).notNull(),
 	audioUrl: text(),
 	version: integer().default(2).notNull(),
-}, (_table) => [
+}, (table) => [
 	pgPolicy("public_read_only", { as: "permissive", for: "select", to: ["public"], using: sql`true` }),
 ]);
