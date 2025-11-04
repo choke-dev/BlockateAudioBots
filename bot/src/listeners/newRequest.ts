@@ -2,9 +2,10 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Events, Listener } from '@sapphire/framework';
 import { ActionRowBuilder, AttachmentBuilder, BaseGuildTextChannel, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { eq, InferSelectModel } from 'drizzle-orm';
+import { createClient } from 'redis';
 import { db } from '../lib/db';
 import { whitelistRequests } from '../lib/db/schema';
-import { createClient } from 'redis';
+import { SelfBotSocket } from '../lib/selfbot-socket';
 
 // type WhitelistRequest = {
 // 	status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -30,6 +31,8 @@ export class UserEvent extends Listener {
 	private whitelistRequestChannel!: BaseGuildTextChannel;
 	private subscriber: ReturnType<typeof createClient> | null = null;
 
+	private autoAcceptSubscriber: ReturnType<typeof createClient> | null = null;
+
 	public override async run() {
 		const guild = this.container.client.guilds.cache.get('1175226662745546793');
 		const channel = guild?.channels.cache.get('1373443972025815070') as BaseGuildTextChannel;
@@ -37,6 +40,7 @@ export class UserEvent extends Listener {
 		this.whitelistRequestChannel = channel;
 
 		await this.subscribeToWhitelist();         // live listener
+		await this.subscribeToAutoWhitelist();
 
 		this.scanForWhitelistRequests();
 		setInterval(() => this.scanForWhitelistRequests(), 2 * 60 * 60 * 1000);
@@ -53,7 +57,7 @@ export class UserEvent extends Listener {
 			// Create Redis subscriber client for KeyDB with authentication
 			const keydbUrl = process.env.KEYDB_URL || 'redis://keydb:6379';
 			const keydbPassword = process.env.KEYDB_PASSWORD;
-			
+
 			this.subscriber = createClient({
 				url: keydbUrl,
 				...(keydbPassword && { password: keydbPassword })
@@ -75,6 +79,68 @@ export class UserEvent extends Listener {
 			});
 
 			console.log('Subscribed to audioRequests channel');
+
+			// Handle connection errors and reconnection
+			this.subscriber.on('error', (error) => {
+				console.error('Redis subscriber error:', error);
+			});
+
+			this.subscriber.on('reconnecting', () => {
+				console.log('Redis subscriber reconnecting...');
+			});
+
+		} catch (error) {
+			console.error('Error connecting to KeyDB:', error);
+		}
+	}
+
+	private async subscribeToAutoWhitelist() {
+		// Clean up existing connection
+		if (this.autoAcceptSubscriber) {
+			await this.autoAcceptSubscriber.quit();
+			this.autoAcceptSubscriber = null;
+		}
+
+		try {
+			// Create Redis subscriber client for KeyDB with authentication
+			const keydbUrl = process.env.KEYDB_URL || 'redis://keydb:6379';
+			const keydbPassword = process.env.KEYDB_PASSWORD;
+
+			this.subscriber = createClient({
+				url: keydbUrl,
+				...(keydbPassword && { password: keydbPassword })
+			});
+
+			// Connect to KeyDB
+			await this.subscriber.connect();
+			console.log('Connected to KeyDB');
+
+			// Subscribe to the audioRequests channel
+			await this.subscriber.subscribe('autoAcceptWhitelistRequests', (message) => {
+				try {
+					const requestData = JSON.parse(message);
+					if (!requestData.requestId) return;
+
+					// attemptwhitelist code here
+					const socket = SelfBotSocket.getInstance();
+					socket.sendIpcMessage(
+						'whitelistAudio',
+						{
+							audioId: Number(requestData.audioId),
+							category: requestData.category,
+							is_private: requestData.is_private,
+							whitelisterId: requestData.whitelisterId,
+							interactionId: "1",
+							timestamp: new Date().toISOString() // Add timestamp for tracking
+						}
+					);
+
+				} catch (error) {
+					console.error('Error parsing request data:', error);
+				}
+			});
+
+			console.log('Subscribed to autoAcceptWhitelistRequests channel');
 
 			// Handle connection errors and reconnection
 			this.subscriber.on('error', (error) => {
