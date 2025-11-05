@@ -6,7 +6,6 @@ import { PostgresError } from 'postgres';
 import { createClient } from 'redis';
 import { db } from '../lib/db';
 import { audios, whitelistRequests } from '../lib/db/schema';
-import { t } from '../lib/localization';
 import { SelfBotSocket } from '../lib/selfbot-socket';
 
 // type WhitelistRequest = {
