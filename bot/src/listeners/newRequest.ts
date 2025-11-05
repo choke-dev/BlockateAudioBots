@@ -129,7 +129,7 @@ export class UserEvent extends Listener {
 							audioId: Number(requestData.audioId),
 							category: requestData.category,
 							is_private: requestData.is_private,
-							whitelisterId: requestData.whitelisterId,
+							whitelisterId: "1",
 							interactionId: "1",
 							timestamp: new Date().toISOString() // Add timestamp for tracking
 						}
