@@ -1,10 +1,12 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Events, Listener } from '@sapphire/framework';
 import { ActionRowBuilder, AttachmentBuilder, BaseGuildTextChannel, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { eq, InferSelectModel } from 'drizzle-orm';
+import { DrizzleError, eq, InferSelectModel } from 'drizzle-orm';
+import { PostgresError } from 'postgres';
 import { createClient } from 'redis';
 import { db } from '../lib/db';
-import { whitelistRequests } from '../lib/db/schema';
+import { audios, whitelistRequests } from '../lib/db/schema';
+import { t } from '../lib/localization';
 import { SelfBotSocket } from '../lib/selfbot-socket';
 
 // type WhitelistRequest = {
@@ -116,14 +118,14 @@ export class UserEvent extends Listener {
 			console.log('Connected to KeyDB');
 
 			// Subscribe to the audioRequests channel
-			await this.subscriber.subscribe('autoAcceptWhitelistRequests', (message) => {
+			await this.subscriber.subscribe('autoAcceptWhitelistRequests', async (message) => {
 				try {
 					const requestData = JSON.parse(message);
 					if (!requestData.requestId) return;
 
 					// attemptwhitelist code here
 					const socket = SelfBotSocket.getInstance();
-					socket.sendIpcMessage(
+					const whitelistResponse = await socket.sendIpcMessage(
 						'whitelistAudio',
 						{
 							audioId: Number(requestData.audioId),
@@ -134,6 +136,63 @@ export class UserEvent extends Listener {
 							timestamp: new Date().toISOString() // Add timestamp for tracking
 						}
 					);
+
+					if (whitelistResponse.data.success || whitelistResponse.data.severity === 'info') {
+						const whitelisterPayload = {
+							roblox: { id: '1', name: 'System' },
+							discord: { id: this.container.client.user!.id, name: this.container.client.user!.username }
+						};
+
+						try {
+							await db.insert(audios).values({
+								id: BigInt(requestData.audioId),
+								name: requestData.name,
+								category: requestData.category,
+								tags: requestData.tags,
+								whitelister: whitelisterPayload,
+								requester: requestData.requester,
+								audioVisibility: requestData.audioVisibility,
+								audioLifecycle: 'ACTIVE'
+							});
+
+							await db
+								.update(whitelistRequests)
+								.set({
+									status: 'APPROVED',
+									updatedAt: new Date().toISOString()
+								})
+								.where(eq(whitelistRequests.requestId, requestData.requestId));
+						} catch (error) {
+							let isUniqueViolation = false;
+
+							if (error instanceof DrizzleError && error.cause && typeof error.cause === 'object') {
+								const cause = error.cause as PostgresError;
+								if (cause.code === '23505') {
+									isUniqueViolation = true;
+								}
+							}
+
+							if (isUniqueViolation) {
+								console.log(`[AutoWhitelist] Audio ${requestData.audioId} already exists, updating request status...`);
+								// If audio already exists, just update the request status
+								try {
+									await db
+										.update(whitelistRequests)
+										.set({
+											status: 'APPROVED',
+											updatedAt: new Date().toISOString()
+										})
+										.where(eq(whitelistRequests.requestId, requestData.requestId));
+								} catch (updateError) {
+									console.error('[AutoWhitelist] Error updating whitelist request status after unique violation:', updateError);
+								}
+							} else {
+								console.error('[AutoWhitelist] Error handling whitelist success:', error);
+							}
+						}
+					} else {
+						// TODO: Handle whitelist failure
+					}
 
 				} catch (error) {
 					console.error('Error parsing request data:', error);
