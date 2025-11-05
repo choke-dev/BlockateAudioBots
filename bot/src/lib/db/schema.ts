@@ -78,7 +78,7 @@ export const audios = pgTable("audios", {
 	audioVisibility: audioVisibility("audio_visibility").default('PUBLIC').notNull(),
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-}, (table) => [
+}, () => [
 	pgPolicy("public_read_only", { as: "permissive", for: "select", to: ["public"], using: sql`true` }),
 ]).enableRLS();
 
@@ -118,6 +118,6 @@ export const audio = pgTable("Audio", {
 	private: boolean().default(false).notNull(),
 	audioUrl: text(),
 	version: integer().default(2).notNull(),
-}, (table) => [
+}, () => [
 	pgPolicy("public_read_only", { as: "permissive", for: "select", to: ["public"], using: sql`true` }),
 ]);
