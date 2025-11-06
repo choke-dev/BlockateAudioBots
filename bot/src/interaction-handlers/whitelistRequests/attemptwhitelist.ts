@@ -123,6 +123,6 @@ export class ButtonHandler extends InteractionHandler {
 	}
 
 	public override parse(interaction: ButtonInteraction) {
-		return interaction.customId === 'whitelistrequest-attemptwhitelist' ? this.some() : this.none();
+		return interaction.customId.startsWith('whitelistrequest-attemptwhitelist') ? this.some() : this.none();
 	}
 }
