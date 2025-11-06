@@ -179,7 +179,7 @@ export class SelfBotSocket {
 					container.logger.debug(`Received IPC message: ${msg.type} (request ${requestId})`);
 					switch (msg.type) {
 						case 'whitelistQueued':
-							setQueueTimeout();
+							//setQueueTimeout();
 							if (onQueued) await onQueued();
 							break;
 						case 'whitelistProcessing':

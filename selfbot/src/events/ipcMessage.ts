@@ -16,63 +16,73 @@ interface WhitelistResponse {
     };
 }
 
-type CheckSeverity = 'error' | 'warning' | 'info';
+type CheckSeverity = 'error' | 'warning' | 'info' | 'success';
 
-// Queue and processing flag
-const whitelistQueue: Array<{ selfbot: Selfbot; message: IPCMessage }> = [];
-let processing = false;
+// Queue item type
+type QueueItem = { selfbot: Selfbot; message: IPCMessage };
 
-export default new SelfbotEvent({
-    name: "ipcMessage" as any,
-    run(selfbot, message: IPCMessage) {
-        if (message.type !== "whitelistAudio" && message.socket) return sendResponse(message.socket, { type: 'error', data: { message: 'Unknown IPC type' } });
-        const { requestId } = message.data;
+// Constants
+const COMMAND_CHANNEL_ID = "1339543496239091784";
+const BETWEEN_ITEMS_DELAY_MS = 1500;
 
-        whitelistQueue.push({ selfbot, message });
-        if (whitelistQueue.length === 1) {
-            return processQueue();
-        }
+// Queue implementation with single worker
+class WhitelistQueue {
+    private queue: QueueItem[] = [];
+    private workerRunning = false;
 
-        if (message.socket && requestId) {
-            sendResponse(message.socket, { type: 'whitelistQueued', data: { requestId } });
-        }
-        return processQueue();
+    enqueue(item: QueueItem) {
+        this.queue.push(item);
+        // do not send a "whitelistQueued" socket update to avoid hitting Discord rate limits on button updates
+        void this.startWorker();
     }
-});
 
-async function processQueue() {
-    if (processing || whitelistQueue.length === 0) return;
-    processing = true;
+    private async startWorker() {
+        if (this.workerRunning) return;
+        this.workerRunning = true;
+        try {
+            while (this.queue.length > 0) {
+                const item = this.queue.shift();
+                if (!item) break;
+                try {
+                    await this.handleItem(item);
+                } catch (err: any) {
+                    // handleItem already logs and attempts socket response; log here for completeness
+                    console.error(`Error handling queue item: ${err?.message ?? String(err)}`);
+                }
+                // small fixed delay between items to reduce rate-limit pressure
+                await new Promise(r => setTimeout(r, BETWEEN_ITEMS_DELAY_MS));
+            }
+        } finally {
+            this.workerRunning = false;
+        }
+    }
 
-    let currentItem: { selfbot: Selfbot; message: IPCMessage } | null = null;
-
-    try {
-        currentItem = whitelistQueue.shift()!;
-        const { selfbot, message } = currentItem;
-        const { audioId, category, is_private, whitelisterId, requestId } = message.data;
+    private async handleItem(item: QueueItem) {
+        const { selfbot, message } = item;
+        const { audioId = 0, category, is_private, whitelisterId = 0, requestId } = message.data ?? {};
 
         // Log queue status
-        console.log(`Processing whitelist request for audio ${audioId}. Queue length: ${whitelistQueue.length}`);
+        console.log(`Processing whitelist request for audio ${audioId}. Queue length: ${this.queue.length}`);
 
-        // Emit processing ack
+        // Emit processing ack (best-effort)
         if (message.socket && requestId) {
             try {
-                sendResponse(message.socket, { type: 'whitelistProcessing', data: { requestId } });
-            } catch (socketError) {
-                console.error(`Socket error sending processing ack: ${socketError.message}`);
+                await sendResponse(message.socket, { type: 'whitelistProcessing', data: { requestId } });
+            } catch (socketError: any) {
+                console.error(`Socket error sending processing ack: ${socketError?.message ?? String(socketError)}`);
                 // Continue processing even if socket is closed
             }
         }
 
         let response: WhitelistResponse;
+
         try {
-            const chan = selfbot.channels.cache.get("1339543496239091784");
+            const chan = selfbot.channels.cache.get(COMMAND_CHANNEL_ID);
             if (!chan || chan.type !== 'GUILD_TEXT') {
                 throw new Error('Commands channel not found');
             }
-            await chan.send(
-                `Attempting to whitelist ${audioId} on behalf of <@${whitelisterId}>...`
-            );
+
+            await chan.send(`Attempting to whitelist ${audioId} on behalf of <@${whitelisterId}>...`);
 
             const result: Message = await sendSlashCommandWithTimeout(
                 chan,
@@ -81,18 +91,22 @@ async function processQueue() {
                 [audioId, category, is_private]
             );
 
-            const messageContent = result.content;
-            const embed = result.embeds[0];
-            if (!messageContent && !embed) throw new Error('Missing response data');
+            const messageContent = result.content ?? '';
+            const embed = result.embeds?.[0];
 
-            const checks: Array<{ cond?: boolean; msg: string; sev: CheckSeverity }> = [
-                { cond: messageContent?.toLowerCase().includes("publicassetcannotbegrantedto"), msg: "This audio is publicly available on the Roblox marketplace!", sev: 'error' },
-                { cond: embed?.title?.toLowerCase().includes("can't access"), msg: 'No access', sev: 'error' },
-                { cond: embed?.description?.toLowerCase().includes('already whitelisted'), msg: 'Already whitelisted', sev: 'info' },
-                { cond: embed?.title?.toLowerCase().includes('invalid asset'), msg: 'Invalid ID', sev: 'error' },
-                { cond: embed?.title?.toLowerCase().includes('under review'), msg: 'Under review', sev: 'warning' },
-                { cond: embed?.title?.toLowerCase().includes('failed'), msg: 'Moderation failed', sev: 'error' },
-                { cond: embed?.title?.toLowerCase().includes('ratelimit'), msg: 'Rate limited', sev: 'warning' }
+            // Normalize strings once
+            const text = messageContent.toLowerCase();
+            const title = (embed?.title ?? '').toLowerCase();
+            const desc = (embed?.description ?? '').toLowerCase();
+
+            const checks: Array<{ cond: boolean; msg: string; sev: CheckSeverity }> = [
+                { cond: text.includes("publicassetcannotbegrantedto"), msg: "This audio is publicly available on the Roblox marketplace!", sev: 'error' },
+                { cond: title.includes("can't access"), msg: 'No access', sev: 'error' },
+                { cond: desc.includes('already whitelisted'), msg: 'Already whitelisted', sev: 'info' },
+                { cond: title.includes('invalid asset'), msg: 'Invalid ID', sev: 'error' },
+                { cond: title.includes('under review'), msg: 'Under review', sev: 'warning' },
+                { cond: title.includes('failed'), msg: 'Moderation failed', sev: 'error' },
+                { cond: title.includes('ratelimit'), msg: 'Rate limited', sev: 'warning' }
             ];
 
             const found = checks.find(c => c.cond);
@@ -121,63 +135,49 @@ async function processQueue() {
                 };
             }
         } catch (error: any) {
-            console.error(`Error processing whitelist request: ${error.message}`);
+            console.error(`Error processing whitelist request: ${error?.message ?? String(error)}`);
             response = {
                 type: 'whitelistResponse',
                 data: {
                     success: false,
-                    audioId,
-                    whitelisterId,
+                    audioId: item.message?.data?.audioId ?? 0,
+                    whitelisterId: item.message?.data?.whitelisterId ?? 0,
                     severity: 'error',
-                    message: error.message,
-                    requestId
+                    message: error?.message ?? String(error),
+                    requestId: item.message?.data?.requestId
                 }
             };
         }
 
-        // Send response if socket is still open
+        // Send response if socket is still open (best-effort)
         if (message.socket) {
             try {
-                return sendResponse(message.socket, response);
-            } catch (socketError) {
-                console.error(`Socket error sending final response: ${socketError.message}`);
+                await sendResponse(message.socket, response);
+                return;
+            } catch (socketError: any) {
+                console.error(`Socket error sending final response: ${socketError?.message ?? String(socketError)}`);
                 // Continue even if socket is closed
             }
         }
 
         console.log(`Completed whitelist request for audio ${audioId}. Result: ${response.data.success ? 'Success' : 'Failed'}`);
-    } catch (fatalError: any) {
-        console.error(`Fatal error in queue processing: ${fatalError.message}`);
-
-        // Try to send error response if we have message details
-        if (currentItem?.message?.socket && currentItem?.message?.data?.requestId) {
-            try {
-                const { audioId = 0, whitelisterId = 0, requestId } = currentItem.message.data;
-                sendResponse(currentItem.message.socket, {
-                    type: 'whitelistResponse',
-                    data: {
-                        success: false,
-                        audioId,
-                        whitelisterId,
-                        severity: 'error',
-                        message: 'Internal server error',
-                        requestId
-                    }
-                });
-            } catch (e) {
-                // Ignore socket errors at this point
-            }
-        }
-    } finally {
-        // Always reset processing flag and continue queue
-        processing = false;
-
-        // Add small delay before processing next item to prevent rate limiting
-        setTimeout(() => {
-            void processQueue();
-        }, 1000);
     }
 }
+
+const whitelistQueue = new WhitelistQueue();
+
+export default new SelfbotEvent({
+    name: "ipcMessage" as any,
+    run(selfbot, message: IPCMessage) {
+        // Validate type and respond if unknown
+        if (message.type !== "whitelistAudio" && message.socket) {
+            return sendResponse(message.socket, { type: 'error', data: { message: 'Unknown IPC type' } });
+        }
+
+        // Push to queue and start worker. Do not send a queued socket update to avoid Discord button update rate limits.
+        whitelistQueue.enqueue({ selfbot, message });
+    }
+});
 
 async function sendSlashCommandWithTimeout(
     channel: any,
@@ -188,7 +188,7 @@ async function sendSlashCommandWithTimeout(
     const m = await channel.sendSlash(botId, cmd, args);
     if (m.flags.has('LOADING')) {
         return new Promise((res, rej) => {
-            const timeout = setTimeout(() => rej(new Error('Command timeout')), 15 * 60 * 1000);
+            const timeout = setTimeout(() => rej(new Error('Command timeout')), 60 * 1000); // 60 seconds
             const handler = (oldMsg: Message, newMsg: Message) => {
                 if (oldMsg.id === m.id) {
                     clearTimeout(timeout);
