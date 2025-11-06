@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
-import { MessageFlags, type ButtonInteraction } from 'discord.js';
+import { type ButtonInteraction } from 'discord.js';
 import { getLocale, t } from '../../lib/localization';
 import { SelfBotSocket } from '../../lib/selfbot-socket';
 
