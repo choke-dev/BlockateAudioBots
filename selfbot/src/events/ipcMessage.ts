@@ -30,9 +30,35 @@ class WhitelistQueue {
     private queue: QueueItem[] = [];
     private workerRunning = false;
 
-    enqueue(item: QueueItem) {
+    /**
+     * Enqueue the item and notify the client:
+     * - If worker is already running, send 'whitelistQueued'.
+     * - If worker is not running, send 'whitelistProcessing'.
+     *
+     * Notification is best-effort; failures are logged but do not block enqueue.
+     */
+    async enqueueAndNotify(item: QueueItem) {
+        const { message } = item;
+        const requestId = message?.data?.requestId;
+
+        // Notify client depending on whether we're already processing
+        try {
+            if (message.socket && requestId) {
+                if (this.workerRunning) {
+                    // Already processing something -> inform client they're queued
+                    await sendResponse(message.socket, { type: 'whitelistQueued', data: { requestId } });
+                } else {
+                    // Nothing being processed -> inform client processing started
+                    await sendResponse(message.socket, { type: 'whitelistProcessing', data: { requestId } });
+                }
+            }
+        } catch (notifyErr: any) {
+            console.error(`Socket notification error in enqueueAndNotify: ${notifyErr?.message ?? String(notifyErr)}`);
+            // best-effort only; continue
+        }
+
+        // Push into queue and start the worker (non-blocking)
         this.queue.push(item);
-        // do not send a "whitelistQueued" socket update to avoid hitting Discord rate limits on button updates
         void this.startWorker();
     }
 
@@ -168,14 +194,16 @@ const whitelistQueue = new WhitelistQueue();
 
 export default new SelfbotEvent({
     name: "ipcMessage" as any,
-    run(selfbot, message: IPCMessage) {
+    async run(selfbot, message: IPCMessage) {
         // Validate type and respond if unknown
         if (message.type !== "whitelistAudio" && message.socket) {
             return sendResponse(message.socket, { type: 'error', data: { message: 'Unknown IPC type' } });
         }
 
-        // Push to queue and start worker. Do not send a queued socket update to avoid Discord button update rate limits.
-        whitelistQueue.enqueue({ selfbot, message });
+        // Enqueue and notify client:
+        // - if nothing is being processed, client receives 'whitelistProcessing'
+        // - if something is already being processed, client receives 'whitelistQueued'
+        await whitelistQueue.enqueueAndNotify({ selfbot, message });
     }
 });
 
