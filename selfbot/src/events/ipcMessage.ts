@@ -61,18 +61,18 @@ class WhitelistQueue {
         const { selfbot, message } = item;
         const { audioId = 0, category, is_private, whitelisterId = 0, requestId } = message.data ?? {};
 
-        // Log queue status
-        console.log(`Processing whitelist request for audio ${audioId}. Queue length: ${this.queue.length}`);
-
-        // Emit processing ack (best-effort)
+        // Notify the client that this queued item is now being processed (best-effort).
         if (message.socket && requestId) {
             try {
                 await sendResponse(message.socket, { type: 'whitelistProcessing', data: { requestId } });
-            } catch (socketError: any) {
-                console.error(`Socket error sending processing ack: ${socketError?.message ?? String(socketError)}`);
-                // Continue processing even if socket is closed
+            } catch (socketErr: any) {
+                console.error(`Socket error sending processing ack in handleItem: ${socketErr?.message ?? String(socketErr)}`);
+                // continue even if send fails
             }
         }
+
+        // Log queue status
+        console.log(`Processing whitelist request for audio ${audioId}. Queue length: ${this.queue.length}`);
 
         let response: WhitelistResponse;
 
