@@ -45,7 +45,7 @@ export class ButtonHandler extends InteractionHandler {
 			const comps = orig.components.map(r => ({
 				type: 1, components: (r as any).components.map((c: any) => {
 					// Check if this component should be updated
-					const update = updateArray.find(u => c.type === 2 && c.customId === u.customId);
+					const update = updateArray.find(u => c.type === 2 && c.customId.startsWith(u.customId));
 					if (update) {
 						// Create a new object with the updated properties
 						return {
