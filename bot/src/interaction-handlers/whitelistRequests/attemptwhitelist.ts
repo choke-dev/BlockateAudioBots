@@ -8,7 +8,7 @@ import { SelfBotSocket } from '../../lib/selfbot-socket';
 export class ButtonHandler extends InteractionHandler {
 	public async run(interaction: ButtonInteraction) {
 		const locale = getLocale(interaction.locale);
-		await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+		await interaction.deferUpdate();
 
 		// extract details
 		const id = interaction.message.content.match(/ID:\s*(\d+)/)?.[1] ?? '';
@@ -91,14 +91,13 @@ export class ButtonHandler extends InteractionHandler {
 
 			if (response.data.success || response.data.severity === 'info') {
 				console.log(`Whitelisted audio ${id} by user ${whitelisterId}`);
-				await updateButton([
+				return updateButton([
 					{ customId: 'whitelistrequest-attemptwhitelist', label: t('buttons.whitelisted', locale), disabled: true },
 					{ customId: 'whitelistrequest-markdone', label: t('buttons.mark_done', locale), disabled: false }
 				]);
-				return interaction.editReply({ content: t('messages.whitelist_attempt.whitelisted', locale, { id: id }) });
 			} else {
 				await updateButton('whitelistrequest-attemptwhitelist', t('buttons.attempt_whitelist', locale), false);
-				return interaction.editReply({ content: `❌ ${response.data.message}` });
+				return interaction.followUp({ content: `❌ ${response.data.message}` });
 			}
 		} catch (e) {
 			// Log the detailed error
