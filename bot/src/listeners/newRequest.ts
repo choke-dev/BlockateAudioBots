@@ -133,7 +133,7 @@ export class UserEvent extends Listener {
 							whitelisterId: "1",
 							interactionId: "1",
 							timestamp: new Date().toISOString() // Add timestamp for tracking
-						}
+						}	
 					);
 
 					if (whitelistResponse.data.success || whitelistResponse.data.severity === 'info') {
@@ -161,6 +161,30 @@ export class UserEvent extends Listener {
 									updatedAt: new Date().toISOString()
 								})
 								.where(eq(whitelistRequests.requestId, requestData.requestId));
+
+							try {
+								const targetChannel = await this.container.client.channels.fetch('1380906344139460688');
+								// Public message - must be in English
+								const doneText = [
+									`ℹ️ This request was automatically approved. (Moderation skipped)`,
+									`Submitter: [${requestData.requester.username}](https://www.roblox.com/users/${requestData.requester.id})`,
+									...(requestData.audioVisibility === 'PRIVATE' ? [':lock: Marked as private — hidden from search results'] : []),
+									'',
+									'```',
+									`ID: ${requestData.audioId}`,
+									`Name: ${requestData.name}`,
+									`Category: ${requestData.category}`,
+									'```'
+								].join('\n');
+
+								if (targetChannel && targetChannel.isTextBased() && 'send' in targetChannel) {
+									await targetChannel.send({ content: doneText, allowedMentions: { parse: [] } });
+								} else {
+									console.log('Target channel not found or is not a text channel.');
+								}
+							} catch (err) {
+								console.error('Error moving message:', err);
+							}
 						} catch (error) {
 							let isUniqueViolation = false;
 
