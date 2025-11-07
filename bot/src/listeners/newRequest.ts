@@ -118,6 +118,7 @@ export class UserEvent extends Listener {
 
 			// Subscribe to the audioRequests channel
 			await this.subscriber.subscribe('autoAcceptWhitelistRequests', async (message) => {
+				console.log(message, { depth: null })
 				try {
 					const requestData = JSON.parse(message);
 					if (!requestData.requestId) return;
