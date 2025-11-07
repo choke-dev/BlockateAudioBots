@@ -167,7 +167,7 @@ export class UserEvent extends Listener {
 								// Public message - must be in English
 								const doneText = [
 									`ℹ️ This request was automatically approved. (Moderation skipped)`,
-									`Submitter: [${requestData.requester.roblox.username}](https://www.roblox.com/users/${requestData.requester.roblox.id})`,
+									`Submitter: [${requestData.requester.roblox.username}](<https://www.roblox.com/users/${requestData.requester.roblox.id}>)`,
 									...(requestData.audioVisibility === 'PRIVATE' ? [':lock: Marked as private — hidden from search results'] : []),
 									'',
 									'```',
