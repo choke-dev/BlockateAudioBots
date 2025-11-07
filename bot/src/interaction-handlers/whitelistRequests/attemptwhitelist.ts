@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
-import { type ButtonInteraction } from 'discord.js';
+import { MessageFlags, type ButtonInteraction } from 'discord.js';
 import { getLocale, t } from '../../lib/localization';
 import { SelfBotSocket } from '../../lib/selfbot-socket';
 
@@ -97,7 +97,7 @@ export class ButtonHandler extends InteractionHandler {
 				]);
 			} else {
 				await updateButton('whitelistrequest-attemptwhitelist', t('buttons.attempt_whitelist', locale), false);
-				return interaction.followUp({ content: `❌ ${response.data.message}` });
+				return interaction.followUp({ content: `❌ ${response.data.message}`, flags: [MessageFlags.Ephemeral] });
 			}
 		} catch (e) {
 			// Log the detailed error
