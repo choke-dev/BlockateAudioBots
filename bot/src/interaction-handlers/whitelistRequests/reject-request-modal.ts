@@ -12,7 +12,7 @@ import { t, getLocale } from '../../lib/localization';
 export class ModalHandler extends InteractionHandler {
 	public async run(interaction: ModalSubmitInteraction) {
 		const locale = getLocale(interaction.locale);
-		const requestId = interaction.customId.split('-')[3]
+		const requestId = interaction.customId.split('-')?.[3]
 		
 		await interaction.deferReply({
 			flags: [MessageFlags.Ephemeral]
@@ -45,7 +45,7 @@ export class ModalHandler extends InteractionHandler {
 		const category = categoryMatch?.[1];
 		const tags = tagsMatch?.[1];
 
-		if (id) {
+		if (requestId) {
 			try {
 				// Update whitelist requests status using Drizzle ORM
 				await db
