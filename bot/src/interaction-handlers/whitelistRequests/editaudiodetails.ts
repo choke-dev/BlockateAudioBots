@@ -77,7 +77,7 @@ export class ButtonHandler extends InteractionHandler {
 	}
 
 	public override parse(interaction: ButtonInteraction) {
-		if (interaction.customId !== 'whitelistrequest-editaudiodetails') return this.none();
+		if (!interaction.customId.startsWith('whitelistrequest-editaudiodetails')) return this.none();
 
 		return this.some();
 	}
