@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
-import { ActionRowBuilder, ButtonBuilder, ComponentType, MessageFlags, type ModalSubmitInteraction } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ComponentType, type ModalSubmitInteraction } from 'discord.js';
 
 function inferBoolean(value: string): boolean {
 	switch (value.toLowerCase()) {
