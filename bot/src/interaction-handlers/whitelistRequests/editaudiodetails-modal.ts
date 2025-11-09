@@ -22,9 +22,7 @@ function inferBoolean(value: string): boolean {
 })
 export class ModalHandler extends InteractionHandler {
 	public async run(interaction: ModalSubmitInteraction) {
-		await interaction.deferReply({
-			flags: [MessageFlags.Ephemeral]
-		});
+		await interaction.deferUpdate();
 
 		// Get the values from the modal
 		const id = interaction.fields.getTextInputValue('id');
@@ -36,7 +34,7 @@ export class ModalHandler extends InteractionHandler {
 		// Get the original message
 		const message = interaction.message;
 		if (!message) {
-			return interaction.editReply({ content: 'Failed to retrieve the original message.' });
+			return interaction.followUp({ content: 'Failed to retrieve the original message.' });
 		}
 
 		// Extract the requester from the original message
@@ -46,7 +44,7 @@ export class ModalHandler extends InteractionHandler {
 		const discordRequester = message.content.match(userMentionRegex)?.[1];
 		const robloxRequester = { userId: message.content.match(robloxUserIdMentionRegex)?.[1], username: message.content.match(robloxUsernameMentionRegex)?.[1] };
 		if (!discordRequester && (!robloxRequester || !robloxRequester.userId || !robloxRequester.username)) {
-			return interaction.editReply({ content: 'Failed to extract requester from the message.' });
+			return interaction.followUp({ content: 'Failed to extract requester from the message.' });
 		}
 
 		// Create the updated message content
@@ -77,16 +75,15 @@ export class ModalHandler extends InteractionHandler {
 
 		// Update the original message
 		try {
-			await message.edit({
+			message.edit({
 				content: updatedContent,
 				components: updatedComponents,
 				allowedMentions: { parse: [] }
 			});
-
-			return interaction.editReply({ content: ':white_check_mark: Audio details updated successfully!' });
+			return;
 		} catch (error) {
 			console.error('Error updating message:', error);
-			return interaction.editReply({ content: 'Failed to update the message. Please try again or contact <@208876506146013185>.' });
+			return interaction.followUp({ content: 'Failed to update the message. Please try again or contact <@208876506146013185>.' });
 		}
 	}
 
