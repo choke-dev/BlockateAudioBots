@@ -117,7 +117,7 @@ export class ButtonHandler extends InteractionHandler {
 			}
 
 			await updateButton('whitelistrequest-attemptwhitelist', t('buttons.attempt_whitelist', locale), false);
-			return interaction.editReply({ content: errorMessage });
+			return interaction.followUp({ content: errorMessage });
 		}
 	}
 
